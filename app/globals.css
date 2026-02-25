@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  /* Primary Accent Colors */
+  --accent-primary: #00D4FF;
+  --accent-secondary: #7C3AED;
+  --accent-tertiary: #FF6B6B;
+  --accent-success: #10B981;
+  --accent-warning: #F59E0B;
+  --accent-error: #EF4444;
+
+  /* Gradients */
+  --accent-gradient: linear-gradient(135deg, #00D4FF 0%, #7C3AED 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #00B8E0 0%, #6D28D9 100%);
+  --glass-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+
+  /* Background Colors */
+  --bg-body: #000000;
+  --bg-card: #000000;
+  --bg-surface: #121212;
+  --bg-input: #262626;
+  --bg-overlay: rgba(0, 0, 0, 0.9);
+
+  /* Text Colors */
+  --text-primary: #F5F5F5;
+  --text-secondary: #A8A8A8;
+  --text-tertiary: #737373;
+  --text-muted: #404040;
+
+  /* Borders */
+  --border-color: #262626;
+  --border-focus: #363636;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-glow: none;
+  --shadow-glow-strong: none;
+
+  /* Spacing */
+  --header-height: 60px;
+  --mobile-nav-height: 50px;
+}
+
+body {
+  background: var(--bg-body);
+  color: var(--text-primary);
+  /* Premium Background Pattern */
+  position: relative;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 50%, rgba(0, 212, 255, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(124, 58, 237, 0.05), transparent 25%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Utilities */
+.text-gradient {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.font-instagram {
+  font-family: var(--font-grand-hotel), cursive;
+}
+
+.glass-nav {
+  background: rgba(11, 17, 33, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+}
