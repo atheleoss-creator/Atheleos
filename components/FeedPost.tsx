@@ -34,9 +34,19 @@ export default function FeedPost({ post }: { post: Post }) {
     const [likeCount, setLikeCount] = useState(post.likes);
     const [isSaved, setIsSaved] = useState(post.isSaved);
 
-    const toggleLike = () => {
+    const toggleLike = async () => {
+        // Optimistic UI Update
         setIsLiked(!isLiked);
         setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+
+        try {
+            const res = await fetch(`/api/posts/${post.id}/like`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed');
+        } catch {
+            // Revert on failure
+            setIsLiked(isLiked);
+            setLikeCount(likeCount);
+        }
     };
 
     const toggleSave = () => {

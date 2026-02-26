@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Stories from "@/components/Stories";
 import Sidebar from "@/components/Sidebar";
 import FeedPost from "@/components/FeedPost";
@@ -10,23 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CreateIcon, ReelsIcon, ArrowRightIcon } from "@/components/Icons";
 
-// Mock Data
-const MOCK_FEED = [
-  {
-    type: "post",
-    id: 1,
-    username: "pro_athlete",
-    avatarUrl: "https://ui-avatars.com/api/?name=Pro+Athlete&background=1E293B&color=00D4FF",
-    mediaUrl: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1000&auto=format&fit=crop",
-    mediaType: "image",
-    caption: "Training day! 💪 #NoPainNoGain #Athleos",
-    likes: 1240,
-    comments: 45,
-    isLiked: true,
-    isSaved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
+const MOCK_MATCH_DATA = {
     type: "match_update",
     id: 101,
     league: "Premier League Athletics",
@@ -34,49 +18,55 @@ const MOCK_FEED = [
     teamB: { name: "Metro City", score: 1, logo: "https://ui-avatars.com/api/?name=MC&background=random" },
     status: "LIVE - 78'",
     highlightUrl: "https://images.unsplash.com/photo-1588665796262-e3e86c073ee2?w=800&auto=format&fit=crop"
-  },
-  {
-    type: "post",
-    id: 2,
-    username: "fitness_guru",
-    avatarUrl: "https://ui-avatars.com/api/?name=Fitness+Guru&background=random",
-    mediaUrl: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1000&auto=format&fit=crop",
-    mediaType: "image",
-    caption: "Morning run view 🌅. What's your workout today?",
-    likes: 856,
-    comments: 23,
-    isLiked: false,
-    isSaved: true,
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
+};
+
+const MOCK_TRENDING_DATA = {
     type: "trending",
     id: 201,
     items: [
-      { tag: "#SummerOlympics", posts: "1.2M", img: "https://images.unsplash.com/photo-1574681604100-34a991ed4fb4?w=200&h=200&fit=crop" },
-      { tag: "#MarathonPrep", posts: "450K", img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=200&h=200&fit=crop" },
-      { tag: "#TennisFinals", posts: "890K", img: "https://images.unsplash.com/photo-1554068865-24cecd4e34f8?w=200&h=200&fit=crop" },
+        { tag: "#SummerOlympics", posts: "1.2M", img: "https://images.unsplash.com/photo-1574681604100-34a991ed4fb4?w=200&h=200&fit=crop" },
+        { tag: "#MarathonPrep", posts: "450K", img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=200&h=200&fit=crop" },
+        { tag: "#TennisFinals", posts: "890K", img: "https://images.unsplash.com/photo-1554068865-24cecd4e34f8?w=200&h=200&fit=crop" },
     ]
-  },
-  {
-    type: "post",
-    id: 3,
-    username: "basketball_star",
-    avatarUrl: "https://ui-avatars.com/api/?name=Basketball+Star&background=random",
-    mediaUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1000&auto=format&fit=crop",
-    mediaType: "image",
-    caption: "Game ready 🏀. Let's go team!",
-    likes: 2300,
-    comments: 112,
-    isLiked: false,
-    isSaved: false,
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  }
-];
+};
 
 export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
+  const [feedRaw, setFeedRaw] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const res = await fetch('/api/posts');
+        if (res.ok) {
+          const data = await res.json();
+          setFeedRaw(data.posts || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch posts', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchPosts();
+  }, []);
+
+  // Inject the mock elements for aesthetic purposes at specific indices 
+  // until we have a real backend for matches and trending tags
+  const displayFeed = [...feedRaw];
+  if (displayFeed.length >= 1) {
+    displayFeed.splice(1, 0, MOCK_MATCH_DATA);
+  } else if (!isLoading) {
+    displayFeed.push(MOCK_MATCH_DATA);
+  }
+  
+  if (displayFeed.length >= 3) {
+    displayFeed.splice(3, 0, MOCK_TRENDING_DATA);
+  } else if (!isLoading) {
+    displayFeed.push(MOCK_TRENDING_DATA);
+  }
 
 
   return (
@@ -113,17 +103,19 @@ export default function Home() {
 
         {/* Dynamic Feed Loop */}
         <div className="flex flex-col gap-6 w-full">
-          {MOCK_FEED.map((feedItem: any) => {
+          {isLoading && <div className="text-center py-10 text-text-secondary animate-pulse">Loading feed...</div>}
+          
+          {!isLoading && displayFeed.map((feedItem: any, index: number) => {
 
             // 1. Render Standard Post
             if (feedItem.type === "post") {
-              return <FeedPost key={`post-${feedItem.id}`} post={feedItem} />;
+              return <FeedPost key={`post-${feedItem.id || index}`} post={feedItem} />;
             }
 
             // 2. Render Live Match Update Block
             if (feedItem.type === "match_update") {
               return (
-                <div key={`match-${feedItem.id}`} className="bg-gradient-to-br from-bg-surface via-bg-card to-bg-surface border border-border-color rounded-2xl overflow-hidden shadow-lg group cursor-pointer hover:border-accent-primary/50 transition-all">
+                <div key={`match-${feedItem.id || index}`} className="bg-gradient-to-br from-bg-surface via-bg-card to-bg-surface border border-border-color rounded-2xl overflow-hidden shadow-lg group cursor-pointer hover:border-accent-primary/50 transition-all">
                   <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
                     <span className="text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -165,7 +157,7 @@ export default function Home() {
             // 3. Render Trending Content Block
             if (feedItem.type === "trending") {
               return (
-                <div key={`trending-${feedItem.id}`} className="bg-bg-surface border border-border-color rounded-2xl p-4 shadow-sm overflow-hidden hidden md:block">
+                <div key={`trending-${feedItem.id || index}`} className="bg-bg-surface border border-border-color rounded-2xl p-4 shadow-sm overflow-hidden hidden md:block">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-xl">🔥</span>
                     <h3 className="font-bold text-text-primary">Trending Highlights</h3>
