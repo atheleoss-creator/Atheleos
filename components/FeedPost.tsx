@@ -33,24 +33,57 @@ export default function FeedPost({ post }: { post: Post }) {
     const [isLiked, setIsLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likes);
     const [isSaved, setIsSaved] = useState(post.isSaved);
+    const [commentText, setCommentText] = useState("");
+    const [commentCount, setCommentCount] = useState(post.comments);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const toggleLike = async () => {
-        // Optimistic UI Update
         setIsLiked(!isLiked);
         setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
-
         try {
             const res = await fetch(`/api/posts/${post.id}/like`, { method: 'POST' });
             if (!res.ok) throw new Error('Failed');
         } catch {
-            // Revert on failure
             setIsLiked(isLiked);
             setLikeCount(likeCount);
         }
     };
 
-    const toggleSave = () => {
+    const toggleSave = async () => {
         setIsSaved(!isSaved);
+        try {
+            const res = await fetch(`/api/posts/${post.id}/save`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed');
+        } catch {
+            setIsSaved(isSaved);
+        }
+    };
+
+    const submitComment = async () => {
+        if (!commentText.trim() || isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/posts/${post.id}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: commentText })
+            });
+            if (res.ok) {
+                setCommentText("");
+                setCommentCount(commentCount + 1);
+            }
+        } catch {
+            // Silent fail
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCommentKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitComment();
+        }
     };
 
     return (
@@ -124,7 +157,7 @@ export default function FeedPost({ post }: { post: Post }) {
 
                     <button className="transition-transform active:scale-[0.80] hover:scale-110 p-1 inline-flex items-center gap-2 group">
                         <ChatBubbleOvalLeftIcon className="w-7 h-7 text-text-primary group-hover:text-blue-500 transition-colors" />
-                        <span className="font-bold text-sm select-none">{post.comments}</span>
+                        <span className="font-bold text-sm select-none">{commentCount}</span>
                     </button>
 
                     <button className="transition-transform active:scale-[0.80] hover:scale-110 p-1 inline-flex items-center group">
@@ -158,10 +191,17 @@ export default function FeedPost({ post }: { post: Post }) {
                 </div>
                 <input
                     type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={handleCommentKeyDown}
                     placeholder="Add a comment..."
                     className="bg-transparent flex-1 text-[13px] outline-none text-text-primary placeholder:text-text-muted"
                 />
-                <button className="text-accent-primary font-bold text-[13px] uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:text-white transition-colors">
+                <button
+                    onClick={submitComment}
+                    disabled={!commentText.trim() || isSubmitting}
+                    className="text-accent-primary font-bold text-[13px] uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:text-white transition-colors"
+                >
                     Post
                 </button>
             </div>

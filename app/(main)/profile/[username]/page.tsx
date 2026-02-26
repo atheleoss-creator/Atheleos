@@ -24,6 +24,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("posts");
 
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
+
     const isOwnProfile = currentUser?.username === username;
 
     useEffect(() => {
@@ -35,6 +38,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 }
                 const data = await res.json();
                 setProfile(data.profile);
+
+                // Check follow status
+                if (data.profile?.id) {
+                    const followRes = await fetch(`/api/follow?targetUserId=${data.profile.id}`);
+                    if (followRes.ok) {
+                        const followData = await followRes.json();
+                        setIsFollowing(followData.following);
+                    }
+                }
             } catch {
                 setError("Unable to load profile data.");
             } finally {
@@ -43,6 +55,26 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         };
         loadProfile();
     }, [username]);
+
+    const toggleFollow = async () => {
+        if (!profile?.id || followLoading) return;
+        setFollowLoading(true);
+        setIsFollowing(!isFollowing);
+        try {
+            const res = await fetch('/api/follow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId: profile.id })
+            });
+            if (!res.ok) throw new Error('Failed');
+            const data = await res.json();
+            setIsFollowing(data.following);
+        } catch {
+            setIsFollowing(isFollowing);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
 
     if (loading) {
         return <div className="min-h-screen bg-bg-body flex items-center justify-center text-text-secondary">Loading Profile...</div>;
@@ -122,11 +154,17 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 Edit Profile
                             </Link>
                         ) : (
-                            <>
-                                <button className="py-2 px-6 bg-accent-primary text-white font-bold text-sm tracking-wider uppercase rounded-xl shadow-lg">
-                                    Follow
-                                </button>
-                            </>
+                            <button
+                                onClick={toggleFollow}
+                                disabled={followLoading}
+                                className={`py-2 px-6 font-bold text-sm tracking-wider uppercase rounded-xl shadow-lg transition-all ${
+                                    isFollowing
+                                        ? 'bg-bg-surface border border-border-color text-text-primary hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                        : 'bg-accent-primary text-white hover:shadow-accent-primary/30'
+                                }`}
+                            >
+                                {isFollowing ? 'Following' : 'Follow'}
+                            </button>
                         )}
                     </div>
                 </div>

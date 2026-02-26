@@ -121,6 +121,19 @@ CREATE TABLE achievements (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 10. Notifications Table
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    actor_id INT NOT NULL,
+    type ENUM('like','comment','follow') NOT NULL,
+    post_id INT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Insert Dummy Data for initial testing
 INSERT INTO users (username, email, password_hash, full_name, role, is_verified, verification_level) 
 VALUES 

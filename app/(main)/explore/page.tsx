@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SearchIcon, ArrowLeftIcon, ReelsIcon } from "@/components/Icons";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 // Mock Data for Explore Layout
@@ -64,6 +65,25 @@ export default function ExplorePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategory, setActiveCategory] = useState("For You");
     const [activeSearchTab, setActiveSearchTab] = useState("Top");
+    const [searchResults, setSearchResults] = useState<{ users: any[]; posts: any[] }>({ users: [], posts: [] });
+    const [searchLoading, setSearchLoading] = useState(false);
+
+    useEffect(() => {
+        if (!searchQuery.trim()) { setSearchResults({ users: [], posts: [] }); return; }
+        const timer = setTimeout(async () => {
+            setSearchLoading(true);
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSearchResults(data);
+                }
+            } catch { /* silent */ } finally {
+                setSearchLoading(false);
+            }
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const handleSearchCheck = () => {
         setIsSearching(true);
@@ -160,10 +180,53 @@ export default function ExplorePage() {
                             </div>
                         </>
                     ) : (
-                        <div className="text-center py-10 text-text-secondary">
-                            <SearchIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                            <p className="text-lg font-semibold text-text-primary mb-1">Searching for "{searchQuery}"</p>
-                            <p className="text-sm">Explore top accounts, tags, and posts.</p>
+                        <div className="flex flex-col gap-6">
+                            {searchLoading && <div className="text-center py-6 text-text-secondary animate-pulse">Searching...</div>}
+
+                            {/* User Results */}
+                            {searchResults.users.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Accounts</h3>
+                                    <div className="flex flex-col gap-3">
+                                        {searchResults.users.map((user: any) => (
+                                            <Link key={user.id} href={`/profile/${user.username}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-bg-surface transition-colors">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden relative shrink-0">
+                                                    <Image src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.username}&background=random`} alt={user.username} fill className="object-cover" unoptimized />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-text-primary text-[14px]">{user.username}</span>
+                                                    <span className="text-[12px] text-text-secondary">{user.full_name} {user.sport ? `· ${user.sport}` : ''}</span>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Post Results */}
+                            {searchResults.posts.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Posts</h3>
+                                    <div className="flex flex-col gap-2">
+                                        {searchResults.posts.map((post: any) => (
+                                            <div key={post.id} className="p-3 bg-bg-surface rounded-xl border border-border-color">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-bold text-[13px] text-text-primary">{post.username}</span>
+                                                </div>
+                                                <p className="text-[13px] text-text-secondary line-clamp-2">{post.caption || post.content}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {!searchLoading && searchResults.users.length === 0 && searchResults.posts.length === 0 && (
+                                <div className="text-center py-10 text-text-secondary">
+                                    <SearchIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg font-semibold text-text-primary mb-1">No results for &quot;{searchQuery}&quot;</p>
+                                    <p className="text-sm">Try searching for a different term.</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

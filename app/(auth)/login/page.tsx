@@ -4,12 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 
 export default function LoginPage() {
-    const [email, setEmail] = useState("pro@athlete.com");
-    const [password, setPassword] = useState("hashed_password_here");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    
-    // OTP State for pending verification
     const [requiresOtp, setRequiresOtp] = useState(false);
     const [otp, setOtp] = useState("");
 
@@ -17,29 +15,20 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError("");
-
         try {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-
             const data = await res.json();
-
             if (!res.ok) {
-                if (data.requiresVerification) {
-                    setRequiresOtp(true);
-                    return; // Stop flow and show OTP screen
-                }
+                if (data.requiresVerification) { setRequiresOtp(true); return; }
                 throw new Error(data.error || 'Login failed');
             }
-
-            // Sync User State if successful (requires manual mutate or hard reload due to AuthContext flow)
-            window.location.href = '/'; 
-            
-        } catch (err: any) {
-            setError(err.message);
+            window.location.href = '/';
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Login failed');
         } finally {
             setLoading(false);
         }
@@ -49,135 +38,183 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError("");
-
         try {
             const res = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp })
             });
-
             const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Invalid OTP');
-            }
-
-            window.location.href = '/'; 
-        } catch (err: any) {
-            setError(err.message);
+            if (!res.ok) throw new Error(data.error || 'Invalid OTP');
+            window.location.href = '/';
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Verification failed');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-[calc(100vh-140px)]">
-            <div className="w-full max-w-md p-8 bg-bg-card border border-border-color rounded-2xl shadow-xl transition-all relative overflow-hidden">
+        <div className="relative flex flex-col items-center justify-center w-full min-h-screen px-6 py-12 overflow-hidden">
+
+            {/* Animated Background Decorations */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[10%] left-[5%] w-20 h-20 rounded-full border border-accent-primary/20 animate-[spin_20s_linear_infinite]" />
+                <div className="absolute bottom-[15%] right-[8%] w-32 h-32 rounded-full border border-accent-secondary/15 animate-[spin_25s_linear_infinite_reverse]" />
+                <div className="absolute top-[30%] right-[15%] w-3 h-3 rounded-full bg-accent-primary/30 animate-pulse" />
+                <div className="absolute bottom-[40%] left-[12%] w-2 h-2 rounded-full bg-accent-secondary/30 animate-pulse delay-1000" />
+                {/* Sport emoji decorations */}
+                <div className="absolute top-[20%] right-[20%] text-4xl opacity-10 animate-bounce" style={{animationDuration: '3s'}}>⚽</div>
+                <div className="absolute bottom-[25%] left-[15%] text-3xl opacity-10 animate-bounce" style={{animationDuration: '4s', animationDelay: '1s'}}>🏀</div>
+                <div className="absolute top-[60%] right-[10%] text-3xl opacity-10 animate-bounce" style={{animationDuration: '3.5s', animationDelay: '0.5s'}}>🏊</div>
+                <div className="absolute top-[15%] left-[25%] text-2xl opacity-10 animate-bounce" style={{animationDuration: '4.5s', animationDelay: '1.5s'}}>🎾</div>
+            </div>
+
+            {/* Main Card */}
+            <div className="w-full max-w-[420px] relative z-10">
                 
+                {/* Logo & Branding */}
+                <div className="text-center mb-10">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-secondary mb-5 shadow-lg shadow-accent-primary/25">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
+                            <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <h1 className="text-4xl font-black tracking-[0.25em] uppercase bg-gradient-to-r from-accent-primary via-white to-accent-secondary bg-clip-text text-transparent mb-3 select-none">
+                        ATHELEOS
+                    </h1>
+                    <p className="text-text-secondary text-sm font-medium">
+                        {requiresOtp ? 'One more step to verify your identity' : 'The arena awaits. Sign in to compete.'}
+                    </p>
+                </div>
+
                 {error && (
-                    <div className="mb-4 bg-red-500/10 border border-red-500/50 text-red-500 text-sm px-4 py-2 rounded-lg text-center">
+                    <div className="mb-5 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl text-center backdrop-blur-sm">
                         {error}
                     </div>
                 )}
 
                 {!requiresOtp ? (
-                    <>
-                        <div className="text-center mb-8">
-                            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-accent-gradient mb-2">
-                                ATHLEOS
-                            </h1>
-                            <p className="text-text-secondary">Welcome back to the arena.</p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <div className="bg-bg-card/80 backdrop-blur-xl border border-border-color rounded-2xl p-7 shadow-2xl shadow-black/40">
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                             <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
-                                    placeholder="Enter your email"
-                                    required
-                                />
+                                <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Email Address</label>
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                            <path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" />
+                                            <path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-bg-input border border-border-color rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50 transition-all placeholder:text-text-muted"
+                                        placeholder="you@example.com"
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div>
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="block text-sm font-medium text-text-secondary">Password</label>
-                                    <Link href="/forgot-password" className="text-xs text-accent-primary hover:underline">Forgot password?</Link>
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">Password</label>
+                                    <Link href="/forgot-password" className="text-xs text-accent-primary hover:underline font-medium">Forgot?</Link>
                                 </div>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
-                                    placeholder="Enter your password"
-                                    required
-                                />
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                            <path fillRule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-bg-input border border-border-color rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50 transition-all placeholder:text-text-muted"
+                                        placeholder="Enter your password"
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3 px-6 bg-accent-gradient text-white font-bold rounded-xl hover:shadow-lg hover:shadow-accent-primary/20 transform active:scale-95 transition-all flex items-center justify-center mt-4"
+                                className="w-full py-3.5 bg-gradient-to-r from-accent-primary to-accent-secondary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-accent-primary/25 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                             >
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
-                                    "Log In"
+                                    <>
+                                        Sign In
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                            <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clipRule="evenodd" />
+                                            <path fillRule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-.943a.75.75 0 1 0-1.004-1.114l-2.5 2.25a.75.75 0 0 0 0 1.114l2.5 2.25a.75.75 0 1 0 1.004-1.114l-1.048-.943h9.546A.75.75 0 0 0 19 10Z" clipRule="evenodd" />
+                                        </svg>
+                                    </>
                                 )}
                             </button>
                         </form>
 
-                        <div className="mt-6 text-center text-sm text-text-secondary">
-                            <p>Don&apos;t have an account? <Link href="/signup" className="text-accent-primary cursor-pointer hover:underline">Sign up</Link></p>
-                            <div className="mt-4 text-xs text-text-muted">
-                                Hardcoded Mock: User: pro@athlete.com, Pass: hashed_password_here
-                            </div>
+                        {/* Divider */}
+                        <div className="flex items-center gap-4 my-6">
+                            <div className="flex-1 h-px bg-border-color" />
+                            <span className="text-xs text-text-muted font-bold uppercase tracking-wider">or</span>
+                            <div className="flex-1 h-px bg-border-color" />
                         </div>
-                    </>
+
+                        <p className="text-center text-sm text-text-secondary">
+                            New to the arena?{' '}
+                            <Link href="/signup" className="text-accent-primary font-bold hover:underline">
+                                Create Account
+                            </Link>
+                        </p>
+                    </div>
                 ) : (
-                    <>
-                         <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent-primary/30">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-accent-primary">
+                    /* OTP Verification View */
+                    <div className="bg-bg-card/80 backdrop-blur-xl border border-border-color rounded-2xl p-7 shadow-2xl shadow-black/40">
+                        <div className="text-center mb-6">
+                            <div className="w-14 h-14 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent-primary/30">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7 text-accent-primary">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold text-text-primary mb-2">Verify your account</h2>
+                            <h2 className="text-xl font-bold text-text-primary mb-1">Check your email</h2>
                             <p className="text-text-secondary text-sm">
-                                Enter the verification code that was sent to <span className="text-white font-semibold">{email}</span>.
+                                We sent a 6-digit code to <span className="text-white font-semibold">{email}</span>
                             </p>
                         </div>
-
                         <form onSubmit={handleOtpSubmit} className="flex flex-col gap-4">
-                            <div>
-                                <input
-                                    type="text"
-                                    maxLength={6}
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-4 text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all font-mono placeholder:text-text-muted placeholder:text-lg placeholder:tracking-normal"
-                                    placeholder="000000"
-                                    required
-                                />
-                            </div>
-
+                            <input
+                                type="text"
+                                maxLength={6}
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-4 text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50 transition-all font-mono placeholder:text-text-muted placeholder:text-lg placeholder:tracking-normal"
+                                placeholder="000000"
+                                required
+                            />
                             <button
                                 type="submit"
                                 disabled={loading || otp.length < 6}
-                                className="w-full py-3 px-6 bg-accent-gradient text-white font-bold rounded-xl hover:shadow-lg hover:shadow-accent-primary/20 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center mt-2"
+                                className="w-full py-3.5 bg-gradient-to-r from-accent-primary to-accent-secondary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-accent-primary/25 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
                             >
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    "Confirm & Login"
-                                )}
+                                ) : 'Verify & Continue'}
+                            </button>
+                            <button type="button" onClick={() => setRequiresOtp(false)} className="text-sm text-text-secondary hover:text-white transition-colors">
+                                ← Back to login
                             </button>
                         </form>
-                    </>
+                    </div>
                 )}
+
+                {/* Footer */}
+                <p className="text-center text-[11px] text-text-muted mt-8">
+                    By signing in, you agree to our Terms of Service and Privacy Policy.
+                </p>
             </div>
         </div>
     );

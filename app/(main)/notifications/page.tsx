@@ -1,91 +1,101 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
+import { formatDistanceToNow } from "date-fns";
 
-// Mocks
-const FILTERS = ["All", "Mentions", "Likes", "Matches", "System"];
+interface Notification {
+    id: number;
+    type: 'like' | 'comment' | 'follow';
+    is_read: boolean;
+    post_id: number | null;
+    created_at: string;
+    actor_username: string;
+    actor_name: string;
+    actor_avatar: string;
+}
 
-const MOCK_NOTIFICATIONS = [
-    {
-        id: "n1",
-        type: "follow",
-        user: { name: "Shikhar Dhawan", username: "shikhar_cricket", avatar: "https://images.unsplash.com/photo-1593341646782-e0b495cff86d?w=100&h=100&fit=crop" },
-        time: "2m",
-        content: "started following you.",
-        unread: true,
-    },
-    {
-        id: "n2",
-        type: "like",
-        user: { name: "FC Elite", username: "fc_elite", avatar: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=100&h=100&fit=crop" },
-        time: "1h",
-        content: "liked your recent match highlight.",
-        unread: true,
-        postCover: "https://images.unsplash.com/photo-1518605368461-1bd49cece51f?w=100&h=100&fit=crop"
-    },
-    {
-        id: "n3",
-        type: "system",
-        user: { name: "Atheleos Team", username: "atheleos_official", avatar: "" },
-        time: "4h",
-        content: "New Tournament: Mumbai Premier League registrations are now open! Register your squad today.",
-        unread: false,
-        isSystem: true
-    },
-    {
-        id: "n4",
-        type: "match",
-        user: { name: "Match Updates", username: "updates", avatar: "" },
-        time: "Yesterday",
-        content: "Your upcoming match against Rangers FC starts in 24 hours.",
-        unread: false,
-    },
-    {
-        id: "n5",
-        type: "mention",
-        user: { name: "Rahul Singh", username: "rahul99", avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop" },
-        time: "Yesterday",
-        content: "mentioned you in a comment: \"Great game yesterday man!\"",
-        unread: false,
-    },
-];
+const FILTERS = ["All", "Likes", "Comments", "Follows"];
 
 export default function NotificationsPage() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState("All");
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const res = await fetch('/api/notifications');
+                if (res.ok) {
+                    const data = await res.json();
+                    setNotifications(data.notifications || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchNotifications();
+
+        // Mark all as read after a short delay
+        const timer = setTimeout(async () => {
+            await fetch('/api/notifications', { method: 'PUT' }).catch(() => {});
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    const getMessage = (type: string) => {
+        switch (type) {
+            case 'like': return 'liked your post.';
+            case 'comment': return 'commented on your post.';
+            case 'follow': return 'started following you.';
+            default: return 'interacted with your profile.';
+        }
+    };
 
     const renderIcon = (type: string) => {
         switch (type) {
             case 'like':
                 return (
-                    <div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1 border border-bg-body">
+                    <div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1 border-2 border-bg-body">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-white">
                             <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
                         </svg>
                     </div>
                 );
-            case 'match':
+            case 'comment':
                 return (
-                    <div className="absolute -bottom-1 -right-1 bg-accent-primary rounded-full p-1 border border-bg-body">
+                    <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1 border-2 border-bg-body">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-white">
-                            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.17l-2.755 4.133a.75.75 0 0 1-1.248 0l-2.755-4.133a.39.39 0 0 0-.297-.17 48.9 48.9 0 0 1-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97Z" clipRule="evenodd" />
                         </svg>
                     </div>
                 );
-            case 'system':
+            case 'follow':
                 return (
-                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-accent-primary/20 border-2 border-accent-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-accent-primary">
-                            <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clipRule="evenodd" />
+                    <div className="absolute -bottom-1 -right-1 bg-accent-primary rounded-full p-1 border-2 border-bg-body">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-white">
+                            <path d="M6.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM3.25 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM19.75 7.5a.75.75 0 0 0-1.5 0v2.25H16a.75.75 0 0 0 0 1.5h2.25v2.25a.75.75 0 0 0 1.5 0v-2.25H22a.75.75 0 0 0 0-1.5h-2.25V7.5Z" />
                         </svg>
                     </div>
                 );
             default: return null;
         }
-    }
+    };
+
+    const filteredNotifications = notifications.filter(notif => {
+        if (activeFilter === "All") return true;
+        if (activeFilter === "Likes") return notif.type === 'like';
+        if (activeFilter === "Comments") return notif.type === 'comment';
+        if (activeFilter === "Follows") return notif.type === 'follow';
+        return true;
+    });
 
     return (
         <div className="min-h-screen bg-bg-body text-text-primary pb-20 md:pb-10 font-sans">
@@ -118,73 +128,61 @@ export default function NotificationsPage() {
 
             {/* Notification List */}
             <div className="flex flex-col">
-                {MOCK_NOTIFICATIONS.map((notif, index) => {
+                {loading && (
+                    <div className="text-center py-10 text-text-secondary animate-pulse">Loading notifications...</div>
+                )}
 
-                    // Filter Logic Array
-                    if (activeFilter !== "All") {
-                        if (activeFilter === "Mentions" && notif.type !== "mention") return null;
-                        if (activeFilter === "Likes" && notif.type !== "like") return null;
-                        if (activeFilter === "Matches" && notif.type !== "match") return null;
-                        if (activeFilter === "System" && notif.type !== "system") return null;
-                    }
+                {!loading && filteredNotifications.length === 0 && (
+                    <div className="text-center py-16 text-text-secondary">
+                        <div className="text-4xl mb-3">🔔</div>
+                        <p className="font-medium">No notifications yet</p>
+                        <p className="text-sm text-text-muted mt-1">When someone interacts with you, it will show up here.</p>
+                    </div>
+                )}
+
+                {filteredNotifications.map((notif) => {
+                    const avatarUrl = notif.actor_avatar || `https://ui-avatars.com/api/?name=${notif.actor_username}&background=random`;
 
                     return (
                         <div
                             key={notif.id}
-                            className={`flex items-start gap-3 p-4 border-b border-border-color hover:bg-bg-surface/50 cursor-pointer transition-colors ${notif.unread ? "bg-accent-primary/5" : ""}`}
+                            className={`flex items-start gap-3 p-4 border-b border-border-color hover:bg-bg-surface/50 cursor-pointer transition-colors ${!notif.is_read ? "bg-accent-primary/5" : ""}`}
                         >
-                            {/* Avatar or System Icon */}
-                            {notif.isSystem ? (
-                                renderIcon('system')
-                            ) : (
-                                <div className="relative w-12 h-12 rounded-full shrink-0 bg-gray-800">
-                                    {notif.user.avatar ? (
-                                        <Image
-                                            src={notif.user.avatar}
-                                            alt={notif.user.name}
-                                            width={48} height={48}
-                                            className="w-full h-full object-cover rounded-full"
-                                            unoptimized
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-tr from-accent-primary to-purple-600 rounded-full" />
-                                    )}
-                                    {renderIcon(notif.type)}
-                                </div>
-                            )}
+                            {/* Avatar with icon badge */}
+                            <div className="relative w-12 h-12 rounded-full shrink-0">
+                                <Image
+                                    src={avatarUrl}
+                                    alt={notif.actor_username}
+                                    width={48} height={48}
+                                    className="w-full h-full object-cover rounded-full"
+                                    unoptimized
+                                />
+                                {renderIcon(notif.type)}
+                            </div>
 
                             {/* Center Content */}
                             <div className="flex-1 min-w-0 pr-2">
                                 <p className="text-[14px] leading-snug">
-                                    <span className="font-bold cursor-pointer hover:underline">{notif.user.username}</span>
+                                    <Link href={`/profile/${notif.actor_username}`} className="font-bold cursor-pointer hover:underline">{notif.actor_username}</Link>
                                     {" "}
-                                    <span className={notif.unread ? "text-white" : "text-text-secondary"}>
-                                        {notif.content}
+                                    <span className={!notif.is_read ? "text-white" : "text-text-secondary"}>
+                                        {getMessage(notif.type)}
                                     </span>
                                 </p>
-                                <p className="text-[13px] text-text-secondary mt-1">{notif.time}</p>
+                                <p className="text-[13px] text-text-secondary mt-1">
+                                    {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                                </p>
                             </div>
 
-                            {/* Right Action (Follow Back, or Post Thumbnail) */}
+                            {/* Follow back button for follow notifications */}
                             {notif.type === 'follow' && (
                                 <button className="shrink-0 bg-accent-primary text-bg-body text-[13px] font-bold px-4 py-1.5 rounded-md hover:bg-white transition-colors">
                                     Follow
                                 </button>
                             )}
-                            {notif.type === 'like' && notif.postCover && (
-                                <div className="w-11 h-11 shrink-0 bg-gray-800 rounded-sm overflow-hidden">
-                                    <Image
-                                        src={notif.postCover}
-                                        alt="Post"
-                                        width={44} height={44}
-                                        className="w-full h-full object-cover"
-                                        unoptimized
-                                    />
-                                </div>
-                            )}
 
-                            {/* Blue Dot Unread Indicator */}
-                            {notif.unread && (
+                            {/* Unread indicator */}
+                            {!notif.is_read && (
                                 <div className="w-2 h-2 shrink-0 bg-blue-500 rounded-full mt-2" />
                             )}
                         </div>
