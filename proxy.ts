@@ -1,25 +1,25 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-    // 1. Array of public routes that don't require authentication
+export function proxy(request: NextRequest) {
+    // 1. Public routes that don't require authentication
     const publicRoutes = ['/login', '/signup', '/forgot-password', '/verification'];
     
-    // 2. Allow all strictly API routes (though you could protect non-auth APIs here too)
+    // 2. Allow all API routes through
     const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
     
     // 3. Current path
     const path = request.nextUrl.pathname;
 
-    // 4. Look for the custom Auth Token generated in `/api/auth/login` and `/api/auth/verify-otp`
+    // 4. Look for auth token cookie
     const token = request.cookies.get('atheleos_token')?.value;
 
-    // 5. If it's a public route and user HAS a token, redirect them to the feed
+    // 5. If it's a public route and user HAS a token, redirect to feed
     if (publicRoutes.includes(path) && token) {
         return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // 6. If it's NOT a public route, NOT an API route, and user DOES NOT have a token -> force login
+    // 6. If NOT a public route, NOT an API route, and user has NO token -> force login
     if (!publicRoutes.includes(path) && !isApiRoute && !token) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -28,15 +28,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
     matcher: [
         /*
-         * Match all request paths except for the ones starting with:
-         * - api (API routes)
+         * Match all request paths except:
          * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+         * - _next/image (image optimization)
+         * - favicon.ico, sitemap.xml, robots.txt
          */
         '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
     ],
