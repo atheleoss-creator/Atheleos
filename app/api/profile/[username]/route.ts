@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-export async function GET(req: Request, { params }: { params: { username: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ username: string }> }) {
   try {
     const { username } = await params; // Get username from URL
 

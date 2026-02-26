@@ -17,9 +17,9 @@ async function getUserId() {
   }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const postId = params.id;
+    const { id: postId } = await params;
     const currentUserId = await getUserId();
 
     if (!currentUserId) {
