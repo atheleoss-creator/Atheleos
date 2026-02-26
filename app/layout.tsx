@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Outfit, Grand_Hotel } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -33,10 +32,8 @@ export default function RootLayout({
       >
         <AuthProvider>
           <div className="relative min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-1 w-full max-w-[1200px] mx-auto px-4 pb-20 md:pb-8">
-              {children}
-            </main>
+            {/* Navbar is now handled by conditional logic or specific page groups */}
+            {children}
           </div>
         </AuthProvider>
       </body>
