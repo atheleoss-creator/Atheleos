@@ -5,7 +5,7 @@ import { sendOTP } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   try {
-    const { username, email, password, fullName, role, city, state, bio } = await req.json();
+    const { username, email, password, fullName, role, city, state, bio, sport, position, height, weight, topSpeed, verticalLeap, recruitingStatus } = await req.json();
 
     const missingFields = [];
     if (!username?.trim()) missingFields.push('username');
@@ -36,11 +36,19 @@ export async function POST(req: Request) {
 
     // 3. Create User in Database as Unverified -> TEMPORARILY SET TO TRUE TO BYPASS OTP
     const insertSql = `
-      INSERT INTO users (username, email, password_hash, full_name, role, city, state, bio, is_verified, otp_code, otp_expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
+      INSERT INTO users (
+        username, email, password_hash, full_name, role, city, state, bio, 
+        sport, position, height, weight, top_speed, vertical_leap, recruiting_status, 
+        is_verified, otp_code, otp_expires_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
     `;
     
-    await query(insertSql, [username, email, passwordHash, fullName, role, city || null, state || null, bio || null, otp, expiresAt]);
+    await query(insertSql, [
+        username, email, passwordHash, fullName, role, city || null, state || null, bio || null, 
+        sport || null, position || null, height || null, weight || null, topSpeed || null, verticalLeap || null, recruitingStatus || 'Not Looking',
+        otp, expiresAt
+    ]);
 
     // 4. Send the OTP Email via Hostinger credentials -> TEMPORARILY DISABLED
     // Note: if SMTP credentials aren't set in dev, it'll fail silently but return true so dev flow proceeds

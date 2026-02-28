@@ -16,7 +16,14 @@ export default function SignupPage() {
         role: "athlete",
         city: "",
         state: "",
-        bio: ""
+        bio: "",
+        sport: "",
+        position: "",
+        height: "",
+        weight: "",
+        topSpeed: "",
+        verticalLeap: "",
+        recruitingStatus: "Not Looking"
     });
 
     const [otp, setOtp] = useState("");
@@ -39,6 +46,13 @@ export default function SignupPage() {
                 city: form.get("city")?.toString() || formData.city,
                 state: form.get("state")?.toString() || formData.state,
                 bio: form.get("bio")?.toString() || formData.bio,
+                sport: form.get("sport")?.toString() || formData.sport,
+                position: form.get("position")?.toString() || formData.position,
+                height: form.get("height")?.toString() || formData.height,
+                weight: form.get("weight")?.toString() || formData.weight,
+                topSpeed: form.get("topSpeed")?.toString() || formData.topSpeed,
+                verticalLeap: form.get("verticalLeap")?.toString() || formData.verticalLeap,
+                recruitingStatus: form.get("recruitingStatus")?.toString() || formData.recruitingStatus,
             };
 
             const res = await fetch('/api/auth/signup', {
@@ -204,6 +218,109 @@ export default function SignupPage() {
                                     />
                                 </div>
                             </div>
+                            
+                            {formData.role === "athlete" && (
+                                <>
+                                    <div className="h-px w-full bg-border-color/50 my-2"></div>
+                                    <h3 className="text-sm font-semibold text-accent-primary uppercase tracking-wider mb-2">Athlete Profile (Optional)</h3>
+                                    
+                                    <div className="flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-text-secondary mb-1">Sport</label>
+                                            <input
+                                                type="text"
+                                                name="sport"
+                                                id="sport"
+                                                value={formData.sport}
+                                                onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
+                                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
+                                                placeholder="Basketball, Track, etc."
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-text-secondary mb-1">Position</label>
+                                            <input
+                                                type="text"
+                                                name="position"
+                                                id="position"
+                                                value={formData.position}
+                                                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
+                                                placeholder="PG, Sprinter, etc."
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-text-secondary mb-1">Height</label>
+                                            <input
+                                                type="text"
+                                                name="height"
+                                                id="height"
+                                                value={formData.height}
+                                                onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
+                                                placeholder="6'2&quot;"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-text-secondary mb-1">Weight</label>
+                                            <input
+                                                type="text"
+                                                name="weight"
+                                                id="weight"
+                                                value={formData.weight}
+                                                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
+                                                placeholder="195 lbs"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-text-secondary mb-1">Top Speed</label>
+                                            <input
+                                                type="text"
+                                                name="topSpeed"
+                                                id="topSpeed"
+                                                value={formData.topSpeed}
+                                                onChange={(e) => setFormData({ ...formData, topSpeed: e.target.value })}
+                                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
+                                                placeholder="e.g. 21 mph"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-text-secondary mb-1">Vertical</label>
+                                            <input
+                                                type="text"
+                                                name="verticalLeap"
+                                                id="verticalLeap"
+                                                value={formData.verticalLeap}
+                                                onChange={(e) => setFormData({ ...formData, verticalLeap: e.target.value })}
+                                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
+                                                placeholder="e.g. 36 in"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-1">Recruiting Status</label>
+                                        <select
+                                            name="recruitingStatus"
+                                            id="recruitingStatus"
+                                            value={formData.recruitingStatus}
+                                            onChange={(e) => setFormData({ ...formData, recruitingStatus: e.target.value })}
+                                            className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all appearance-none"
+                                        >
+                                            <option value="Not Looking">Not Looking</option>
+                                            <option value="Looking">Looking for Offers</option>
+                                            <option value="Signed">Signed / Committed</option>
+                                            <option value="Free Agent">Free Agent</option>
+                                        </select>
+                                    </div>
+                                    <div className="h-px w-full bg-border-color/50 mt-2 mb-2"></div>
+                                </>
+                            )}
+                            
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Short Bio (Optional)</label>
                                 <textarea
