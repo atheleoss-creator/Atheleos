@@ -141,8 +141,10 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3.5 bg-gradient-to-r from-accent-primary to-accent-secondary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-accent-primary/25 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                                className="w-full py-3.5 relative overflow-hidden group bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary bg-[length:200%_auto] hover:bg-[center_right_1rem] text-white font-extrabold rounded-xl hover:shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.5)] transform active:scale-95 transition-all duration-500 flex items-center justify-center gap-2 mt-2 disabled:opacity-60 disabled:hover:shadow-none"
                             >
+                                <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full -translate-x-full transition-transform duration-700 ease-in-out skew-x-[-20deg]" />
+                                <span className="relative z-10 flex items-center justify-center gap-2">
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
@@ -154,6 +156,7 @@ export default function LoginPage() {
                                         </svg>
                                     </>
                                 )}
+                                </span>
                             </button>
                         </form>
 
@@ -198,11 +201,14 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading || otp.length < 6}
-                                className="w-full py-3.5 bg-gradient-to-r from-accent-primary to-accent-secondary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-accent-primary/25 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                                className="w-full py-3.5 relative overflow-hidden group bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary bg-[length:200%_auto] hover:bg-[center_right_1rem] text-white font-extrabold rounded-xl hover:shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.5)] transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-500 flex items-center justify-center"
                             >
+                                <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full -translate-x-full transition-transform duration-700 ease-in-out skew-x-[-20deg]" />
+                                <span className="relative z-10 flex items-center justify-center gap-2">
                                 {loading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : 'Verify & Continue'}
+                                </span>
                             </button>
                             <button type="button" onClick={() => setRequiresOtp(false)} className="text-sm text-text-secondary hover:text-white transition-colors">
                                 ← Back to login
