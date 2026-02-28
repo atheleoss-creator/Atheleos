@@ -28,6 +28,10 @@
 }
 
 :root {
+  /* RGB Values for glowing shadows */
+  --accent-primary-rgb: 0, 212, 255;
+  --accent-secondary-rgb: 124, 58, 237;
+
   /* Gradients */
   --accent-gradient: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
   --accent-gradient-hover: linear-gradient(135deg, #00b8e0 0%, #6d28d9 100%);
