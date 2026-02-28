@@ -7,8 +7,16 @@ export async function POST(req: Request) {
   try {
     const { username, email, password, fullName, role, city, state, bio } = await req.json();
 
-    if (!username || !email || !password || !fullName || !role) {
-      return NextResponse.json({ error: 'All core fields are required' }, { status: 400 });
+    const missingFields = [];
+    if (!username?.trim()) missingFields.push('username');
+    if (!email?.trim()) missingFields.push('email');
+    if (!password?.trim()) missingFields.push('password');
+    if (!fullName?.trim()) missingFields.push('fullName');
+    if (!role?.trim()) missingFields.push('role');
+
+    if (missingFields.length > 0) {
+      console.log('Signup failed due to missing fields:', missingFields, 'Received data:', { username, email, password: !!password, fullName, role });
+      return NextResponse.json({ error: `Missing required fields: ${missingFields.join(', ')}` }, { status: 400 });
     }
 
     // 1. Check if user exists

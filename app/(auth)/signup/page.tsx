@@ -22,16 +22,29 @@ export default function SignupPage() {
     const [otp, setOtp] = useState("");
     const [savedEmail, setSavedEmail] = useState("");
 
-    const handleSignupSubmit = async (e: React.FormEvent) => {
+    const handleSignupSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
+            // Grab actual DOM values to defeat Autofill failing to trigger React onChange
+            const form = new FormData(e.currentTarget);
+            const submitData = {
+                username: form.get("username")?.toString() || formData.username,
+                fullName: form.get("fullName")?.toString() || formData.fullName,
+                email: form.get("email")?.toString() || formData.email,
+                password: form.get("password")?.toString() || formData.password,
+                role: form.get("role")?.toString() || formData.role,
+                city: form.get("city")?.toString() || formData.city,
+                state: form.get("state")?.toString() || formData.state,
+                bio: form.get("bio")?.toString() || formData.bio,
+            };
+
             const res = await fetch('/api/auth/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             });
 
             const data = await res.json();
@@ -102,6 +115,8 @@ export default function SignupPage() {
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Username</label>
                                 <input
                                     type="text"
+                                    name="username"
+                                    id="username"
                                     value={formData.username}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                     className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -113,6 +128,8 @@ export default function SignupPage() {
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Full Name</label>
                                 <input
                                     type="text"
+                                    name="fullName"
+                                    id="fullName"
                                     value={formData.fullName}
                                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                     className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -124,6 +141,8 @@ export default function SignupPage() {
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
                                 <input
                                     type="email"
+                                    name="email"
+                                    id="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -135,6 +154,8 @@ export default function SignupPage() {
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Password</label>
                                 <input
                                     type="password"
+                                    name="password"
+                                    id="password"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -145,6 +166,8 @@ export default function SignupPage() {
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Role</label>
                                 <select
+                                    name="role"
+                                    id="role"
                                     value={formData.role}
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                     className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all appearance-none"
@@ -160,6 +183,8 @@ export default function SignupPage() {
                                     <label className="block text-sm font-medium text-text-secondary mb-1">City</label>
                                     <input
                                         type="text"
+                                        name="city"
+                                        id="city"
                                         value={formData.city}
                                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                                         className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -170,6 +195,8 @@ export default function SignupPage() {
                                     <label className="block text-sm font-medium text-text-secondary mb-1">State</label>
                                     <input
                                         type="text"
+                                        name="state"
+                                        id="state"
                                         value={formData.state}
                                         onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                                         className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -180,6 +207,8 @@ export default function SignupPage() {
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1">Short Bio (Optional)</label>
                                 <textarea
+                                    name="bio"
+                                    id="bio"
                                     value={formData.bio}
                                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                                     className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all resize-none"
