@@ -23,7 +23,7 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
-    login: () => void;
+    setUser: React.Dispatch<React.SetStateAction<User | null>>;
     logout: () => void;
     updateProfile: (data: Partial<User>) => void;
     isAuthenticated: boolean;
@@ -62,27 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkSession();
     }, []);
 
-    const login = async () => {
-        try {
-            // Hardcoded credentials mapped to the SQL seed for easy migration testing
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: 'pro@athlete.com', password: 'hashed_password_here' })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setUser(data.user);
-                router.push("/");
-            } else {
-                alert("Login failed. Check your database setup.");
-            }
-        } catch (error) {
-            console.error("Login Error", error);
-        }
-    };
-
     const logout = async () => {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
@@ -94,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, updateProfile, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, setUser, logout, updateProfile, isAuthenticated: !!user }}>
             {!loading && children}
         </AuthContext.Provider>
     );

@@ -5,10 +5,10 @@ import { sendOTP } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   try {
-    const { username, email, password, fullName } = await req.json();
+    const { username, email, password, fullName, role, city, state, bio } = await req.json();
 
-    if (!username || !email || !password || !fullName) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    if (!username || !email || !password || !fullName || !role) {
+      return NextResponse.json({ error: 'All core fields are required' }, { status: 400 });
     }
 
     // 1. Check if user exists
@@ -28,11 +28,11 @@ export async function POST(req: Request) {
 
     // 3. Create User in Database as Unverified
     const insertSql = `
-      INSERT INTO users (username, email, password_hash, full_name, is_verified, otp_code, otp_expires_at)
-      VALUES (?, ?, ?, ?, FALSE, ?, ?)
+      INSERT INTO users (username, email, password_hash, full_name, role, city, state, bio, is_verified, otp_code, otp_expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?)
     `;
     
-    await query(insertSql, [username, email, passwordHash, fullName, otp, expiresAt]);
+    await query(insertSql, [username, email, passwordHash, fullName, role, city || null, state || null, bio || null, otp, expiresAt]);
 
     // 4. Send the OTP Email via Hostinger credentials
     // Note: if SMTP credentials aren't set in dev, it'll fail silently but return true so dev flow proceeds
