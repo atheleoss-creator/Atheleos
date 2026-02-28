@@ -26,16 +26,17 @@ export async function POST(req: Request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutes from now
 
-    // 3. Create User in Database as Unverified
+    // 3. Create User in Database as Unverified -> TEMPORARILY SET TO TRUE TO BYPASS OTP
     const insertSql = `
       INSERT INTO users (username, email, password_hash, full_name, role, city, state, bio, is_verified, otp_code, otp_expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
     `;
     
     await query(insertSql, [username, email, passwordHash, fullName, role, city || null, state || null, bio || null, otp, expiresAt]);
 
-    // 4. Send the OTP Email via Hostinger credentials
+    // 4. Send the OTP Email via Hostinger credentials -> TEMPORARILY DISABLED
     // Note: if SMTP credentials aren't set in dev, it'll fail silently but return true so dev flow proceeds
+    /*
     if (process.env.SMTP_USER) {
         const mailSent = await sendOTP(email, otp, 'signup');
         if (!mailSent) {
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
         // Dev visual cue if skip mailer
         console.log(`[DEV MODE] Skipping email. OTP for ${email} is: ${otp}`);
     }
+    */
 
     return NextResponse.json({ 
         success: true, 

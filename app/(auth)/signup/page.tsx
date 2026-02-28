@@ -41,7 +41,8 @@ export default function SignupPage() {
             }
 
             setSavedEmail(formData.email);
-            setStep("otp");
+            // setStep("otp"); -> Bypassing OTP
+            window.location.href = '/login'; // Redirect straight to login or home 
 
         } catch (err: any) {
             setError(err.message);
