@@ -64,7 +64,10 @@ export default function SignupPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || 'Failed to sign up');
+                const errMsg = data.sqlMessage 
+                    ? `${data.error} (${data.code}: ${data.sqlMessage})` 
+                    : (data.error || 'Failed to sign up');
+                throw new Error(errMsg);
             }
 
             setSavedEmail(formData.email);
