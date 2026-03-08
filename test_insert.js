@@ -5,9 +5,9 @@ async function test() {
   console.log("STARTING TEST SCRIPT");
   try {
     const conn = await mysql.createConnection({
-      host: process.env.DB_HOST || "localhost",
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASSWORD || "",
+      host: "localhost",
+      user: "root",
+      password: "",
       database: process.env.DB_NAME || "atheleos_db",
     });
     console.log("Connected to DB");

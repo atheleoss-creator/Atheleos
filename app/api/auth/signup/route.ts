@@ -70,8 +70,8 @@ export async function POST(req: Request) {
         message: 'Account created. OTP sent to email.'
     }, { status: 201 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Signup Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Internal server error', sqlMessage: error?.sqlMessage }, { status: 500 });
   }
 }

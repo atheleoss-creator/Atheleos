@@ -23,14 +23,14 @@ export async function GET(req: Request) {
 
         // Search posts by caption
         const posts = await query(`
-            SELECT p.id, p.content, p.media_url, p.media_type, p.created_at,
+            SELECT p.id, p.caption, p.media_url, p.media_type, p.created_at,
                    u.username, u.avatar_url, u.is_verified
             FROM posts p
             JOIN users u ON p.user_id = u.id
-            WHERE p.caption LIKE ? OR p.content LIKE ?
+            WHERE p.caption LIKE ?
             ORDER BY p.created_at DESC
             LIMIT 20
-        `, [searchTerm, searchTerm]);
+        `, [searchTerm]);
 
         return NextResponse.json({ users, posts });
     } catch (error) {
