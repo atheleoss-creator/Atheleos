@@ -204,7 +204,7 @@ export default function FeedPost({ post }: { post: Post }) {
             {/* Comment Input */}
             <div className="px-4 py-3 border-t border-white/[0.06] flex items-center gap-3 bg-white/[0.02]">
                 <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
-                    <Image src={user?.avatarUrl || "/default_avatar.png"} alt="You" width={32} height={32} className="object-cover w-full h-full" unoptimized />
+                    <Image src={user?.avatarUrl || "/default_avatar.svg"} alt="You" width={32} height={32} className="object-cover w-full h-full" unoptimized />
                 </div>
                 <input
                     type="text"

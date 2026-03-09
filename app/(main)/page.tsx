@@ -45,7 +45,7 @@ export default function Home() {
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-sm animate-fade-in backdrop-blur-sm">
           <div className="flex items-center gap-3 w-full max-w-full overflow-hidden">
             <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/10 shrink-0">
-              <Image src={user?.avatarUrl || "/default_avatar.png"} alt="Avatar" fill className="object-cover" unoptimized />
+              <Image src={user?.avatarUrl || "/default_avatar.svg"} alt="Avatar" fill className="object-cover" unoptimized />
             </div>
             <div
               onClick={() => router.push('/create-post')}

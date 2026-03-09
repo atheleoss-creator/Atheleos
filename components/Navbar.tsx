@@ -54,7 +54,7 @@ export default function Navbar() {
                                 : "ring-white/10 group-hover:ring-accent-primary/50"
                                 }`}>
                                 <Image
-                                    src={user?.avatarUrl || "/default_avatar.png"}
+                                    src={user?.avatarUrl || "/default_avatar.svg"}
                                     alt="Profile"
                                     width={36}
                                     height={36}
@@ -103,7 +103,7 @@ export default function Navbar() {
                     <Link href="/profile" className="flex-1 flex items-center justify-center h-full">
                         <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${pathname.startsWith("/profile") ? "ring-accent-primary" : "ring-transparent"}`}>
                             <Image
-                                src={user?.avatarUrl || "/default_avatar.png"}
+                                src={user?.avatarUrl || "/default_avatar.svg"}
                                 alt="Profile"
                                 width={28}
                                 height={28}
