@@ -5,7 +5,7 @@ const path = require("path");
 
 // ALWAYS force production mode on Hostinger to prevent Turbopack 404s
 const dev = false;
-const hostname = "localhost";
+const hostname = "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
 // Initialize Next.js app from the project root in STRICT production mode
