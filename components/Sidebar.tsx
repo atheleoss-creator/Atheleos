@@ -1,17 +1,58 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
+interface SuggestedUser {
+    id: number;
+    username: string;
+    full_name: string;
+    avatar_url: string;
+    sport: string | null;
+}
+
 export default function Sidebar() {
     const { user } = useAuth();
+    const [suggestions, setSuggestions] = useState<SuggestedUser[]>([]);
+    const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+    const [followedIds, setFollowedIds] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        async function fetchSuggestions() {
+            try {
+                const res = await fetch('/api/users/suggested');
+                if (res.ok) {
+                    const data = await res.json();
+                    setSuggestions(data.users || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch suggestions', error);
+            } finally {
+                setLoadingSuggestions(false);
+            }
+        }
+        fetchSuggestions();
+    }, []);
+
+    const handleFollow = async (userId: number) => {
+        try {
+            setFollowedIds(prev => new Set([...prev, userId]));
+            await fetch(`/api/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId: userId })
+            });
+        } catch {
+            setFollowedIds(prev => { const next = new Set(prev); next.delete(userId); return next; });
+        }
+    };
 
     if (!user) return null;
 
     return (
-        <div className="hidden lg:flex flex-col gap-6 sticky top-[90px] h-fit">
+        <div className="hidden lg:flex flex-col gap-6 sticky top-[90px] h-fit animate-fade-in">
 
             {/* User Mini Profile */}
             <div className="bg-bg-card border border-border-color rounded-2xl p-4 flex items-center gap-4 hover:border-accent-primary/50 transition-colors shadow-lg group">
@@ -30,80 +71,62 @@ export default function Sidebar() {
                     </Link>
                     <div className="text-xs text-text-secondary truncate">{user.fullName}</div>
                 </div>
-                <div className="text-xs font-bold text-accent-primary cursor-pointer hover:text-white transition-colors">Switch</div>
             </div>
 
-            {/* Suggested For You - Sports Themed */}
+            {/* Suggested For You */}
             <div className="bg-bg-card border border-border-color rounded-2xl p-4 shadow-lg">
                 <div className="flex items-center justify-between gap-2 mb-4">
                     <h3 className="text-sm font-bold text-text-secondary">Suggested Accounts</h3>
-                    <span className="text-accent-primary text-[11px] font-bold uppercase tracking-wider cursor-pointer hover:text-white">See all</span>
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    {/* Mock Suggestions */}
-                    {[
-                        { name: "Federer.rf", reason: "Follows Tennis", avatar: "https://ui-avatars.com/api/?name=RF&background=random" },
-                        { name: "Miami_Heat_Official", reason: "Trending Team", avatar: "https://ui-avatars.com/api/?name=MH&background=random" },
-                        { name: "Athlete_Daily", reason: "New to Atheleos", avatar: "https://ui-avatars.com/api/?name=AD&background=random" }
-                    ].map((suggestion, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 border border-border-color rounded-full bg-bg-surface overflow-hidden relative hover:scale-105 transition-transform cursor-pointer">
-                                    <Image src={suggestion.avatar} alt="User" fill className="object-cover" unoptimized />
+                    {loadingSuggestions && (
+                        <div className="flex flex-col gap-4">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-full skeleton shrink-0" />
+                                    <div className="flex-1 flex flex-col gap-1.5">
+                                        <div className="h-3 w-24 skeleton" />
+                                        <div className="h-2 w-16 skeleton" />
+                                    </div>
                                 </div>
-                                <div className="text-sm flex flex-col justify-center">
-                                    <div className="font-bold text-text-primary text-[13px] leading-tight cursor-pointer hover:text-text-secondary">{suggestion.name}</div>
-                                    <div className="text-[11px] text-text-secondary leading-tight">{suggestion.reason}</div>
+                            ))}
+                        </div>
+                    )}
+
+                    {!loadingSuggestions && suggestions.length === 0 && (
+                        <p className="text-text-secondary text-xs text-center py-4">No suggestions available</p>
+                    )}
+
+                    {suggestions.map((s) => {
+                        const avatarUrl = s.avatar_url || `https://ui-avatars.com/api/?name=${s.username}&background=random`;
+                        const isFollowed = followedIds.has(s.id);
+                        return (
+                            <div key={s.id} className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Link href={`/profile/${s.username}`} className="w-9 h-9 border border-border-color rounded-full bg-bg-surface overflow-hidden relative hover:scale-105 transition-transform cursor-pointer">
+                                        <Image src={avatarUrl} alt={s.username} fill className="object-cover" unoptimized />
+                                    </Link>
+                                    <div className="text-sm flex flex-col justify-center">
+                                        <Link href={`/profile/${s.username}`} className="font-bold text-text-primary text-[13px] leading-tight cursor-pointer hover:text-text-secondary">{s.username}</Link>
+                                        <div className="text-[11px] text-text-secondary leading-tight">{s.sport || s.full_name || 'Athlete'}</div>
+                                    </div>
                                 </div>
+                                {isFollowed ? (
+                                    <span className="text-xs text-text-secondary font-semibold">Following</span>
+                                ) : (
+                                    <button onClick={() => handleFollow(s.id)} className="text-xs text-accent-primary font-bold hover:text-white transition-colors">
+                                        Follow
+                                    </button>
+                                )}
                             </div>
-                            <button className="text-xs text-text-primary font-bold hover:text-text-secondary transition-colors">
-                                Follow
-                            </button>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             </div>
 
-            {/* Upcoming Events */}
-            <div className="bg-bg-card border border-border-color rounded-2xl p-4 shadow-lg">
-                <div className="flex items-center justify-between gap-2 mb-4">
-                    <h3 className="text-sm font-bold text-text-secondary">Upcoming Matches</h3>
-                    <Link href="/events" className="text-xs font-bold text-accent-primary hover:text-white transition-colors">See all</Link>
-                </div>
-                <div className="flex flex-col gap-3">
-                    <div className="flex gap-3 items-center p-2.5 bg-bg-surface hover:bg-white/5 border border-border-color hover:border-accent-primary/50  rounded-xl transition-all cursor-pointer">
-                        <div className="w-12 h-12 rounded-lg bg-red-500/20 flex flex-col items-center justify-center text-red-500 shrink-0">
-                            <span className="text-[10px] font-bold uppercase">Oct</span>
-                            <span className="text-[15px] font-bold">24</span>
-                        </div>
-                        <div className="flex flex-col flex-1">
-                            <div className="font-bold text-[13px] text-text-primary truncate">City Marathon</div>
-                            <div className="text-[11px] text-text-secondary truncate">New York, NY</div>
-                        </div>
-                    </div>
-                    <div className="flex gap-3 items-center p-2.5 bg-bg-surface hover:bg-white/5 border border-border-color hover:border-accent-primary/50 rounded-xl transition-all cursor-pointer">
-                        <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex flex-col items-center justify-center text-blue-500 shrink-0">
-                            <span className="text-[10px] font-bold uppercase">Nov</span>
-                            <span className="text-[15px] font-bold">12</span>
-                        </div>
-                        <div className="flex flex-col flex-1">
-                            <div className="font-bold text-[13px] text-text-primary truncate">National Swim Meet</div>
-                            <div className="text-[11px] text-text-secondary truncate">Aquatic Center</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Trending Tags */}
+            {/* Footer Links */}
             <div className="flex flex-col gap-4 p-2">
-                <div className="flex flex-wrap gap-2">
-                    {["#Basketball", "#Soccer", "#Tennis", "#Marathon", "#Olympics"].map((tag) => (
-                        <span key={tag} className="text-[11px] font-bold bg-bg-surface text-text-secondary px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 transition-colors border border-border-color">
-                            {tag}
-                        </span>
-                    ))}
-                </div>
                 <div className="text-[11px] text-text-secondary w-full">
                     <div className="flex flex-wrap gap-x-3 gap-y-1 mb-2">
                         <span className="hover:underline cursor-pointer">About</span>

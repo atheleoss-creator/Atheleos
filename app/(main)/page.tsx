@@ -7,33 +7,12 @@ import FeedPost from "@/components/FeedPost";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
-import { CreateIcon, ReelsIcon, ArrowRightIcon } from "@/components/Icons";
-
-const MOCK_MATCH_DATA = {
-    type: "match_update",
-    id: 101,
-    league: "Premier League Athletics",
-    teamA: { name: "Falcons Elite", score: 2, logo: "https://ui-avatars.com/api/?name=FE&background=random" },
-    teamB: { name: "Metro City", score: 1, logo: "https://ui-avatars.com/api/?name=MC&background=random" },
-    status: "LIVE - 78'",
-    highlightUrl: "https://images.unsplash.com/photo-1588665796262-e3e86c073ee2?w=800&auto=format&fit=crop"
-};
-
-const MOCK_TRENDING_DATA = {
-    type: "trending",
-    id: 201,
-    items: [
-        { tag: "#SummerOlympics", posts: "1.2M", img: "https://images.unsplash.com/photo-1574681604100-34a991ed4fb4?w=200&h=200&fit=crop" },
-        { tag: "#MarathonPrep", posts: "450K", img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=200&h=200&fit=crop" },
-        { tag: "#TennisFinals", posts: "890K", img: "https://images.unsplash.com/photo-1554068865-24cecd4e34f8?w=200&h=200&fit=crop" },
-    ]
-};
+import { CreateIcon, ReelsIcon } from "@/components/Icons";
 
 export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
-  const [feedRaw, setFeedRaw] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +21,7 @@ export default function Home() {
         const res = await fetch('/api/posts');
         if (res.ok) {
           const data = await res.json();
-          setFeedRaw(data.posts || []);
+          setPosts(data.posts || []);
         }
       } catch (error) {
         console.error('Failed to fetch posts', error);
@@ -52,22 +31,6 @@ export default function Home() {
     }
     fetchPosts();
   }, []);
-
-  // Inject the mock elements for aesthetic purposes at specific indices 
-  // until we have a real backend for matches and trending tags
-  const displayFeed = [...feedRaw];
-  if (displayFeed.length >= 1) {
-    displayFeed.splice(1, 0, MOCK_MATCH_DATA);
-  } else if (!isLoading) {
-    displayFeed.push(MOCK_MATCH_DATA);
-  }
-  
-  if (displayFeed.length >= 3) {
-    displayFeed.splice(3, 0, MOCK_TRENDING_DATA);
-  } else if (!isLoading) {
-    displayFeed.push(MOCK_TRENDING_DATA);
-  }
-
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -79,10 +42,10 @@ export default function Home() {
         <Stories />
 
         {/* Quick Access Action Bar */}
-        <div className="bg-bg-surface border border-border-color rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-sm">
+        <div className="bg-bg-surface border border-border-color rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-sm animate-fade-in">
           <div className="flex items-center gap-2 md:gap-3 w-full max-w-full overflow-hidden">
             <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border border-border-color shrink-0">
-              <Image src={user?.avatarUrl || "https://ui-avatars.com/api/?name=User&background=random"} alt="Avatar" fill className="object-cover" unoptimized />
+              <Image src={user?.avatarUrl || "/default_avatar.png"} alt="Avatar" fill className="object-cover" unoptimized />
             </div>
             <div
               onClick={() => router.push('/create-post')}
@@ -101,85 +64,48 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Dynamic Feed Loop */}
+        {/* Feed */}
         <div className="flex flex-col gap-6 w-full">
-          {isLoading && <div className="text-center py-10 text-text-secondary animate-pulse">Loading feed...</div>}
-          
-          {!isLoading && displayFeed.map((feedItem: any, index: number) => {
-
-            // 1. Render Standard Post
-            if (feedItem.type === "post") {
-              return <FeedPost key={`post-${feedItem.id || index}`} post={feedItem} />;
-            }
-
-            // 2. Render Live Match Update Block
-            if (feedItem.type === "match_update") {
-              return (
-                <div key={`match-${feedItem.id || index}`} className="bg-gradient-to-br from-bg-surface via-bg-card to-bg-surface border border-border-color rounded-2xl overflow-hidden shadow-lg group cursor-pointer hover:border-accent-primary/50 transition-all">
-                  <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
-                    <span className="text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                      {feedItem.league}
-                    </span>
-                    <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-md">{feedItem.status}</span>
-                  </div>
-                  <div className="p-4 flex items-center justify-between">
-                    <div className="flex flex-col items-center gap-2 w-1/3">
-                      <div className="w-14 h-14 relative rounded-full overflow-hidden border-2 border-border-color">
-                        <Image src={feedItem.teamA.logo} alt={feedItem.teamA.name} fill className="object-cover" unoptimized />
-                      </div>
-                      <span className="font-bold text-sm text-center line-clamp-1">{feedItem.teamA.name}</span>
-                    </div>
-
-                    <div className="flex flex-col items-center justify-center w-1/3">
-                      <div className="text-3xl font-black text-white tracking-widest">{feedItem.teamA.score} - {feedItem.teamB.score}</div>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 w-1/3">
-                      <div className="w-14 h-14 relative rounded-full overflow-hidden border-2 border-border-color">
-                        <Image src={feedItem.teamB.logo} alt={feedItem.teamB.name} fill className="object-cover" unoptimized />
-                      </div>
-                      <span className="font-bold text-sm text-center line-clamp-1">{feedItem.teamB.name}</span>
+          {isLoading && (
+            <div className="flex flex-col gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-bg-card border border-border-color rounded-2xl overflow-hidden">
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="w-10 h-10 rounded-full skeleton" />
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <div className="h-3 w-24 skeleton" />
+                      <div className="h-2 w-16 skeleton" />
                     </div>
                   </div>
-                  <div className="relative w-full h-32 overflow-hidden border-t border-border-color">
-                    <Image src={feedItem.highlightUrl} alt="Match Highlight" fill className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-bg-body via-transparent to-transparent flex items-bottom p-3">
-                      <span className="text-sm font-semibold flex items-center gap-1 self-end group-hover:text-accent-primary transition-colors">
-                        Watch Live Stream <ArrowRightIcon className="w-4 h-4" />
-                      </span>
-                    </div>
+                  <div className="w-full aspect-[4/5] skeleton" />
+                  <div className="p-4 flex flex-col gap-2">
+                    <div className="h-3 w-32 skeleton" />
+                    <div className="h-3 w-full skeleton" />
                   </div>
                 </div>
-              )
-            }
+              ))}
+            </div>
+          )}
 
-            // 3. Render Trending Content Block
-            if (feedItem.type === "trending") {
-              return (
-                <div key={`trending-${feedItem.id || index}`} className="bg-bg-surface border border-border-color rounded-2xl p-4 shadow-sm overflow-hidden hidden md:block">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xl">🔥</span>
-                    <h3 className="font-bold text-text-primary">Trending Highlights</h3>
-                  </div>
-                  <div className="flex gap-3 overflow-x-auto hidden-scrollbar pb-2">
-                    {feedItem.items.map((item: any, idx: number) => (
-                      <div key={idx} className="relative w-[180px] h-[240px] shrink-0 rounded-xl overflow-hidden cursor-pointer group">
-                        <Image src={item.img} alt={item.tag} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                        <div className="absolute bottom-3 left-3 flex flex-col">
-                          <span className="font-bold text-white text-sm">{item.tag}</span>
-                          <span className="text-xs text-gray-300">{item.posts} posts</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            }
+          {!isLoading && posts.length === 0 && (
+            <div className="text-center py-16 animate-fade-in">
+              <div className="w-20 h-20 rounded-full bg-bg-surface border border-border-color flex items-center justify-center mx-auto mb-4">
+                <CreateIcon className="w-10 h-10 text-text-tertiary" />
+              </div>
+              <h3 className="text-xl font-bold text-text-primary mb-2">No posts yet</h3>
+              <p className="text-text-secondary text-sm mb-6">Be the first to share a highlight!</p>
+              <button 
+                onClick={() => router.push('/create-post')} 
+                className="bg-accent-gradient text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-accent-primary/20 transition-all active:scale-95"
+              >
+                Create Post
+              </button>
+            </div>
+          )}
 
-            return null;
-          })}
+          {!isLoading && posts.map((post: any) => (
+            <FeedPost key={`post-${post.id}`} post={post} />
+          ))}
         </div>
       </div>
 

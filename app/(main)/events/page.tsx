@@ -1,105 +1,79 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { SearchIcon, ArrowLeftIcon, TimeIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
-// Mock Data
 const CATEGORIES = ["All", "Football", "Cricket", "Basketball", "Tennis", "E-Sports", "Athletics"];
 
-const MOCK_EVENTS = [
-    {
-        id: 1,
-        title: "Atheleos Premier League 2024",
-        sport: "Football",
-        date: "Oct 15 - Nov 20, 2024",
-        location: "Mumbai Stadium, IND",
-        image: "https://images.unsplash.com/photo-1518605368461-1bd49cece51f?w=600&h=300&fit=crop",
-        status: "Registrations Open",
-        type: "Upcoming",
-        teamsRegistered: 12,
-        maxTeams: 16
-    },
-    {
-        id: 2,
-        title: "National T20 Smash",
-        sport: "Cricket",
-        date: "Nov 01 - Nov 15, 2024",
-        location: "Green Park, Delhi",
-        image: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&h=300&fit=crop",
-        status: "Ongoing",
-        type: "Upcoming",
-        teamsRegistered: 8,
-        maxTeams: 8
-    },
-    {
-        id: 3,
-        title: "E-Sports Valorant Championship",
-        sport: "E-Sports",
-        date: "Dec 10 - Dec 12, 2024",
-        location: "Online",
-        image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=300&fit=crop",
-        status: "Upcoming",
-        type: "Upcoming",
-        teamsRegistered: 24,
-        maxTeams: 32
-    },
-    {
-        id: 4,
-        title: "Summer Hoops Classic",
-        sport: "Basketball",
-        date: "Aug 10 - Aug 12, 2024",
-        location: "Indoor Arena, Bangalore",
-        image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&h=300&fit=crop",
-        status: "Completed",
-        type: "Past",
-        winner: "Bangalore Bulls"
-    },
-    {
-        id: 5,
-        title: "Grand Slam Open",
-        sport: "Tennis",
-        date: "Jul 05 - Jul 20, 2024",
-        location: "Pune Tennis Club",
-        image: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=600&h=300&fit=crop",
-        status: "Completed",
-        type: "Past",
-        winner: "Rohan B."
-    }
-];
+interface Event {
+    id: number;
+    title: string;
+    sport: string | null;
+    description: string | null;
+    event_date: string | null;
+    location: string | null;
+    image_url: string | null;
+    status: 'upcoming' | 'ongoing' | 'completed';
+    max_teams: number;
+    teams_registered: number;
+    winner: string | null;
+    created_at: string;
+}
 
 export default function EventsPage() {
     const router = useRouter();
-    const { user } = useAuth(); // Context to check roles
+    const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
 
-    const [activeTab, setActiveTab] = useState<"Upcoming" | "Past">("Upcoming");
+    const [activeTab, setActiveTab] = useState<"upcoming" | "completed">("upcoming");
     const [activeCategory, setActiveCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
+    const [events, setEvents] = useState<Event[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Filter Logic
-    const filteredEvents = MOCK_EVENTS.filter(event => {
-        const matchesTab = event.type === activeTab;
-        const matchesCategory = activeCategory === "All" || event.sport === activeCategory;
-        const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.location.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesTab && matchesCategory && matchesSearch;
-    });
+    // Fetch events from API
+    useEffect(() => {
+        async function fetchEvents() {
+            setLoading(true);
+            try {
+                const params = new URLSearchParams();
+                if (activeTab === "upcoming") {
+                    params.append('status', 'upcoming');
+                } else {
+                    params.append('status', 'completed');
+                }
+                if (activeCategory !== "All") params.append('sport', activeCategory);
+                if (searchQuery.trim()) params.append('q', searchQuery.trim());
+
+                const res = await fetch(`/api/events?${params.toString()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setEvents(data.events || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch events', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchEvents();
+    }, [activeTab, activeCategory, searchQuery]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "Registrations Open": return "bg-green-500/10 text-green-500 border-green-500/20";
-            case "Ongoing": return "bg-red-500/10 text-red-500 border-red-500/20";
-            case "Completed": return "bg-accent-primary/10 text-accent-primary border-accent-primary/20";
+            case "upcoming": return "bg-green-500/10 text-green-500 border-green-500/20";
+            case "ongoing": return "bg-red-500/10 text-red-500 border-red-500/20";
+            case "completed": return "bg-accent-primary/10 text-accent-primary border-accent-primary/20";
             default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
         }
     };
 
     return (
         <div className="min-h-screen bg-bg-body pb-24 font-sans">
-            {/* Sticky Header */}
+            {/* Header */}
             <div className="sticky top-0 z-20 bg-bg-body/95 backdrop-blur-md border-b border-border-color">
                 <div className="px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -108,7 +82,6 @@ export default function EventsPage() {
                         </button>
                         <h1 className="text-[20px] font-bold text-text-primary">Tournaments</h1>
                     </div>
-                    {/* Admin Only Create Button (Desktop/Tablet Top right) */}
                     {isAdmin && (
                         <button className="hidden md:flex items-center gap-2 bg-accent-primary text-bg-body font-bold text-[13px] px-4 py-1.5 rounded-full hover:bg-white transition-colors">
                             <span>+</span> Create Event
@@ -116,17 +89,16 @@ export default function EventsPage() {
                     )}
                 </div>
 
-                {/* Main Tabs */}
                 <div className="flex px-4 pt-2">
                     <button
-                        onClick={() => setActiveTab("Upcoming")}
-                        className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "Upcoming" ? "border-text-primary text-text-primary" : "border-transparent text-text-secondary"}`}
+                        onClick={() => setActiveTab("upcoming")}
+                        className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "upcoming" ? "border-text-primary text-text-primary" : "border-transparent text-text-secondary"}`}
                     >
                         Upcoming
                     </button>
                     <button
-                        onClick={() => setActiveTab("Past")}
-                        className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "Past" ? "border-text-primary text-text-primary" : "border-transparent text-text-secondary"}`}
+                        onClick={() => setActiveTab("completed")}
+                        className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "completed" ? "border-text-primary text-text-primary" : "border-transparent text-text-secondary"}`}
                     >
                         Past
                     </button>
@@ -148,16 +120,15 @@ export default function EventsPage() {
                     />
                 </div>
 
-                {/* Horizontal Category Scroll */}
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                     {CATEGORIES.map((cat) => (
                         <button
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
                             className={`px-4 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all border ${activeCategory === cat
-                                    ? "bg-text-primary text-bg-body border-text-primary"
-                                    : "bg-bg-surface text-text-primary border-border-color hover:bg-white/5"
-                                }`}
+                                ? "bg-text-primary text-bg-body border-text-primary"
+                                : "bg-bg-surface text-text-primary border-border-color hover:bg-white/5"
+                            }`}
                         >
                             {cat}
                         </button>
@@ -167,61 +138,82 @@ export default function EventsPage() {
 
             {/* Events Feed */}
             <div className="px-4 space-y-5">
-                {filteredEvents.length === 0 ? (
-                    <div className="text-center py-20 text-text-secondary">
+                {loading && (
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-bg-surface rounded-2xl overflow-hidden border border-border-color">
+                                <div className="h-40 w-full skeleton" />
+                                <div className="p-4 flex flex-col gap-3">
+                                    <div className="h-4 w-3/4 skeleton" />
+                                    <div className="h-3 w-1/2 skeleton" />
+                                    <div className="h-3 w-2/3 skeleton" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {!loading && events.length === 0 && (
+                    <div className="text-center py-20 text-text-secondary animate-fade-in">
                         <div className="w-16 h-16 rounded-full bg-bg-surface flex items-center justify-center mx-auto mb-4">
                             <TimeIcon className="w-8 h-8 opacity-50" />
                         </div>
                         <h3 className="font-bold text-lg text-text-primary mb-1">No Events Found</h3>
-                        <p className="text-sm">Try adjusting your filters or search query.</p>
+                        <p className="text-sm">
+                            {searchQuery ? "Try adjusting your filters or search query." : "Check back later for upcoming tournaments!"}
+                        </p>
                     </div>
-                ) : (
-                    filteredEvents.map((event) => (
-                        <div key={event.id} className="bg-bg-surface rounded-2xl overflow-hidden border border-border-color hover:border-text-secondary/50 transition-colors cursor-pointer group">
-                            {/* Banner Image */}
+                )}
+
+                {!loading && events.map((event) => {
+                    const coverImage = event.image_url || "https://images.unsplash.com/photo-1518605368461-1bd49cece51f?w=600&h=300&fit=crop";
+                    return (
+                        <div key={event.id} className="bg-bg-surface rounded-2xl overflow-hidden border border-border-color hover:border-text-secondary/50 transition-colors cursor-pointer group animate-fade-in">
                             <div className="h-40 w-full relative">
-                                <Image src={event.image} alt={event.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                                <Image src={coverImage} alt={event.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                                 <div className="absolute top-3 right-3">
                                     <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border backdrop-blur-md ${getStatusColor(event.status)}`}>
                                         {event.status}
                                     </span>
                                 </div>
-                                <div className="absolute bottom-3 left-4">
-                                    <span className="bg-black/50 backdrop-blur-md text-white px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wide">
-                                        {event.sport}
-                                    </span>
-                                </div>
+                                {event.sport && (
+                                    <div className="absolute bottom-3 left-4">
+                                        <span className="bg-black/50 backdrop-blur-md text-white px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wide">
+                                            {event.sport}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Event Details */}
                             <div className="p-4">
                                 <h3 className="text-[18px] font-bold text-text-primary leading-tight mb-2 group-hover:text-accent-primary transition-colors">{event.title}</h3>
-
                                 <div className="space-y-2 mb-4">
-                                    <div className="flex items-center gap-2 text-text-secondary text-[13px]">
-                                        <TimeIcon className="w-4 h-4" />
-                                        <span>{event.date}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-text-secondary text-[13px]">
-                                        {/* Simplified Map Pin SVG Mock for Location */}
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                        </svg>
-                                        <span>{event.location}</span>
-                                    </div>
+                                    {event.event_date && (
+                                        <div className="flex items-center gap-2 text-text-secondary text-[13px]">
+                                            <TimeIcon className="w-4 h-4" />
+                                            <span>{event.event_date}</span>
+                                        </div>
+                                    )}
+                                    {event.location && (
+                                        <div className="flex items-center gap-2 text-text-secondary text-[13px]">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                            </svg>
+                                            <span>{event.location}</span>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Divider */}
                                 <div className="h-[1px] bg-border-color mb-3" />
 
                                 <div className="flex items-center justify-between">
-                                    {event.type === "Upcoming" ? (
+                                    {event.status !== 'completed' ? (
                                         <>
                                             <div className="flex flex-col">
                                                 <span className="text-[11px] text-text-secondary uppercase font-bold tracking-wider">Registration</span>
-                                                <span className="text-[13px] font-semibold text-text-primary">{event.teamsRegistered} / {event.maxTeams} Teams</span>
+                                                <span className="text-[13px] font-semibold text-text-primary">{event.teams_registered} / {event.max_teams} Teams</span>
                                             </div>
                                             <button className="bg-text-primary text-bg-body text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-gray-200 transition-colors">
                                                 View Details
@@ -230,9 +222,9 @@ export default function EventsPage() {
                                     ) : (
                                         <>
                                             <div className="flex flex-col">
-                                                <span className="text-[11px] text-accent-primary uppercase font-bold tracking-wider">Tournament Winner</span>
+                                                <span className="text-[11px] text-accent-primary uppercase font-bold tracking-wider">Winner</span>
                                                 <span className="text-[14px] font-bold text-text-primary flex items-center gap-1.5">
-                                                    🏆 {event.winner}
+                                                    🏆 {event.winner || "TBD"}
                                                 </span>
                                             </div>
                                             <button className="bg-bg-surface border border-border-color text-text-primary text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-white/5 transition-colors">
@@ -243,11 +235,10 @@ export default function EventsPage() {
                                 </div>
                             </div>
                         </div>
-                    ))
-                )}
+                    );
+                })}
             </div>
 
-            {/* Admin Floating Action Button (Mobile) */}
             {isAdmin && (
                 <button className="md:hidden fixed bottom-24 right-4 bg-accent-primary text-bg-body w-14 h-14 rounded-full shadow-lg shadow-accent-primary/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-30">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">

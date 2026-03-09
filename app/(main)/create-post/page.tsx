@@ -3,35 +3,22 @@
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeftIcon, CheckIcon } from "@/components/Icons";
+import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
-
-const CATEGORIES = ["Football", "Cricket", "Basketball", "Tennis", "E-Sports", "Athletics", "Gymnastics", "Swimming"];
 
 export default function CreatePostPage() {
     const router = useRouter();
-    const { user } = useAuth(); // Import real user details
+    const { user } = useAuth();
 
-    // Media States
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
-    // Form States
     const [caption, setCaption] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [location, setLocation] = useState<string>("");
-    const [taggedUsers, setTaggedUsers] = useState<string>("");
-
-    // Toggles
-    const [isPrivate, setIsPrivate] = useState(false);
-    const [isScheduled, setIsScheduled] = useState(false);
-    const [scheduleDate, setScheduleDate] = useState("");
-
     const [isSharing, setIsSharing] = useState(false);
 
-    // Handlers
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -40,16 +27,8 @@ export default function CreatePostPage() {
         }
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
@@ -61,30 +40,45 @@ export default function CreatePostPage() {
     };
 
     const handleShare = async () => {
-        if (!selectedFile || isSharing) return;
+        if (isSharing) return;
+        if (!caption.trim() && !selectedFile) return;
 
         setIsSharing(true);
 
-        // Mock Server Upload Delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+            let mediaUrl = null;
+            let mediaType = 'text';
 
-        console.log("Post Created:", {
-            file: selectedFile.name,
-            caption,
-            category: selectedCategory,
-            location,
-            taggedUsers,
-            privacy: isPrivate ? "Followers Only" : "Public",
-            scheduledFor: isScheduled ? scheduleDate : "Now"
-        });
+            // For now, if a file is selected, use the preview URL as a placeholder
+            // In production, you'd upload to a storage service first
+            if (selectedFile) {
+                mediaType = selectedFile.type.startsWith('video/') ? 'video' : 'image';
+                // TODO: Upload file to storage and get URL
+                mediaUrl = previewUrl;
+            }
 
-        // Redirect based on file type (simulating post vs reel)
-        if (selectedFile.type.startsWith('video/')) {
-            router.push("/reels");
-        } else {
+            const res = await fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mediaUrl,
+                    mediaType,
+                    caption: caption.trim(),
+                    location: location.trim() || null,
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to create post');
+
+            // Navigate home on success
             router.push("/");
+        } catch (error) {
+            console.error('Share Error:', error);
+            setIsSharing(false);
         }
     };
+
+    const canShare = caption.trim().length > 0 || selectedFile;
 
     return (
         <div className="min-h-screen bg-bg-body text-text-primary font-sans pb-safe">
@@ -98,11 +92,11 @@ export default function CreatePostPage() {
                 </div>
                 <button
                     onClick={handleShare}
-                    className={`font-extrabold text-[15px] transition-colors flex items-center gap-2 ${selectedFile && !isSharing
+                    className={`font-extrabold text-[15px] transition-colors flex items-center gap-2 ${canShare && !isSharing
                             ? "text-accent-primary hover:text-white"
                             : "text-text-secondary cursor-not-allowed"
                         }`}
-                    disabled={!selectedFile || isSharing}
+                    disabled={!canShare || isSharing}
                 >
                     {isSharing ? (
                         <>
@@ -154,42 +148,20 @@ export default function CreatePostPage() {
                                 </svg>
                             </div>
                             <h3 className="text-[18px] font-bold mb-1">Upload Photo or Video</h3>
-                            <p className="text-text-secondary text-[14px]">Drag and drop files here or click to browse</p>
+                            <p className="text-text-secondary text-[14px] mb-2">Drag and drop files here or click to browse</p>
+                            <p className="text-text-tertiary text-[12px]">Or just write a text post above!</p>
 
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileSelect}
-                                className="hidden"
-                                accept="image/*,video/*"
-                            />
+                            <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
                         </div>
                     ) : (
                         <div className="relative rounded-2xl overflow-hidden bg-black border border-border-color shadow-lg max-h-[600px] flex items-center justify-center">
                             {selectedFile?.type.startsWith('video/') ? (
-                                <video
-                                    src={previewUrl}
-                                    className="w-full max-h-[600px] object-contain"
-                                    controls
-                                    autoPlay
-                                    muted
-                                />
+                                <video src={previewUrl} className="w-full max-h-[600px] object-contain" controls autoPlay muted />
                             ) : (
-                                <Image
-                                    src={previewUrl}
-                                    alt="Preview"
-                                    width={1200}
-                                    height={1200}
-                                    className="object-contain w-full max-h-[600px]"
-                                    unoptimized
-                                />
+                                <Image src={previewUrl} alt="Preview" width={1200} height={1200} className="object-contain w-full max-h-[600px]" unoptimized />
                             )}
                             <button
-                                onClick={() => {
-                                    setSelectedFile(null);
-                                    setPreviewUrl(null);
-                                    if (fileInputRef.current) fileInputRef.current.value = "";
-                                }}
+                                onClick={() => { setSelectedFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
                                 className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-red-500 transition-colors shadow-xl"
                                 title="Remove Media"
                             >
@@ -201,45 +173,8 @@ export default function CreatePostPage() {
                     )}
                 </div>
 
-                {/* Event & Category Assignment */}
-                <div className="px-4 mb-6 hidden-scrollbar overflow-x-auto whitespace-nowrap">
-                    <div className="flex gap-2 pb-2">
-                        {CATEGORIES.map(category => (
-                            <button
-                                key={category}
-                                onClick={() => setSelectedCategory(selectedCategory === category ? null : category)}
-                                className={`px-4 py-1.5 rounded-full text-[13px] font-bold border transition-all ${selectedCategory === category
-                                        ? "bg-accent-primary text-bg-body border-accent-primary"
-                                        : "bg-bg-surface text-text-primary border-border-color hover:border-text-secondary"
-                                    }`}
-                            >
-                                {selectedCategory === category && <span className="mr-1">✓</span>}
-                                {category}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Dynamic Metadata Form Inputs */}
+                {/* Location Input */}
                 <div className="flex flex-col border-y border-border-color bg-bg-surface/50">
-
-                    {/* Tagging */}
-                    <div className="px-4 py-3 flex items-center border-b border-border-color focus-within:bg-white/5 transition-colors">
-                        <div className="w-8 shrink-0 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-text-primary">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                            </svg>
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Tag players or teams"
-                            value={taggedUsers}
-                            onChange={(e) => setTaggedUsers(e.target.value)}
-                            className="w-full bg-transparent pl-3 focus:outline-none text-[15px] placeholder-text-secondary"
-                        />
-                    </div>
-
-                    {/* Location */}
                     <div className="px-4 py-3 flex items-center border-b border-border-color focus-within:bg-white/5 transition-colors">
                         <div className="w-8 shrink-0 flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-text-primary">
@@ -255,55 +190,7 @@ export default function CreatePostPage() {
                             className="w-full bg-transparent pl-3 focus:outline-none text-[15px] placeholder-text-secondary"
                         />
                     </div>
-
                 </div>
-
-                {/* Advanced Toggles */}
-                <div className="flex flex-col bg-bg-surface/50 border-b border-border-color mb-8">
-
-                    {/* Privacy */}
-                    <div className="px-5 py-4 flex items-center justify-between border-b border-border-color">
-                        <div>
-                            <span className="block text-[15px] font-semibold text-text-primary">Private Post</span>
-                            <span className="block text-[13px] text-text-secondary">Only your approved followers can see this post.</span>
-                        </div>
-                        <button
-                            onClick={() => setIsPrivate(!isPrivate)}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${isPrivate ? 'bg-accent-primary' : 'bg-gray-600'}`}
-                        >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${isPrivate ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
-
-                    {/* Schedule */}
-                    <div className="flex flex-col">
-                        <div className="px-5 py-4 flex items-center justify-between">
-                            <div>
-                                <span className="block text-[15px] font-semibold text-text-primary">Schedule Post</span>
-                                <span className="block text-[13px] text-text-secondary">Automatically publish this post at a later time.</span>
-                            </div>
-                            <button
-                                onClick={() => setIsScheduled(!isScheduled)}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors ${isScheduled ? 'bg-accent-primary' : 'bg-gray-600'}`}
-                            >
-                                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${isScheduled ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-
-                        {isScheduled && (
-                            <div className="px-5 pb-4 pl-[72px] animate-fade-in">
-                                <input
-                                    type="datetime-local"
-                                    value={scheduleDate}
-                                    onChange={(e) => setScheduleDate(e.target.value)}
-                                    className="w-full bg-bg-body border border-border-color rounded-lg px-3 py-2 text-[14px] text-white focus:outline-none focus:border-accent-primary"
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                </div>
-
             </div>
         </div>
     );
