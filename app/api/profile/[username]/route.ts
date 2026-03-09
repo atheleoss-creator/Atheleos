@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ username
     // 3. Fetch User Posts (Feed aggregation)
     const posts: any = await query(`
       SELECT 
-        p.id, p.content, p.media_url, p.media_type, p.created_at,
+        p.id, p.caption, p.media_url, p.media_type, p.created_at,
         u.username, u.full_name, u.avatar_url, u.is_verified, u.verification_level,
         (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count

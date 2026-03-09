@@ -219,7 +219,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                     <Image src={post.media_url} alt="Post" fill className="object-cover" unoptimized />
                                 ) : (
                                     <div className="p-2 w-full h-full flex items-center justify-center text-xs text-center text-text-secondary break-words line-clamp-3">
-                                        {post.content}
+                                        {post.caption}
                                     </div>
                                 )}
                             </div>
