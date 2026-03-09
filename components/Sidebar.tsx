@@ -57,7 +57,7 @@ export default function Sidebar() {
             {/* User Card */}
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4 hover:border-accent-primary/30 transition-all duration-300 backdrop-blur-sm group">
                 <Link href="/profile" className="relative w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-accent-primary/50 transition-all shrink-0">
-                    <Image src={user.avatarUrl} alt={user.username} fill className="object-cover" unoptimized />
+                    <Image src={user.avatarUrl || "/default_avatar.svg"} alt={user.username} fill className="object-cover" unoptimized />
                 </Link>
                 <div className="flex-1 overflow-hidden">
                     <Link href="/profile" className="font-bold text-white hover:text-accent-primary block text-[15px] transition-colors">

@@ -34,7 +34,7 @@ interface FollowUser {
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
     const { username } = use(params);
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, updateProfile } = useAuth();
 
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -161,6 +161,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             if (!editRes.ok) throw new Error('Save failed');
 
             setProfile((prev: any) => ({ ...prev, avatar_url: url }));
+            // Sync to AuthContext so Navbar/Sidebar update instantly
+            updateProfile({ avatarUrl: url });
         } catch (err) {
             console.error('Avatar upload failed:', err);
         } finally {

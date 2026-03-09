@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @theme {
+  /* Fonts */
+  --font-sans: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-grand-hotel), cursive;
+
   /* Primary Accent Colors */
   --color-accent-primary: #00d4ff;
   --color-accent-secondary: #7c3aed;
@@ -19,8 +23,8 @@
   /* Text Colors */
   --color-text-primary: #f5f5f5;
   --color-text-secondary: #a3a3a3;
-  --color-text-tertiary: #525252;
-  --color-text-muted: #404040;
+  --color-text-tertiary: #737373;
+  --color-text-muted: #525252;
 
   /* Borders */
   --color-border-color: #1a1a1a;
@@ -87,10 +91,12 @@ html {
 body {
   background: #000;
   color: var(--color-text-primary);
+  font-family: var(--font-sans);
   position: relative;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 /* Subtle ambient glow background */
@@ -118,6 +124,16 @@ body::before {
   z-index: -1;
 }
 
+/* Typography enhancements */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+p {
+  line-height: 1.65;
+}
+
 /* Utilities */
 .text-gradient {
   background: var(--accent-gradient);
@@ -128,6 +144,10 @@ body::before {
 
 .bg-accent-gradient {
   background: var(--accent-gradient);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* Scrollbar utilities */
@@ -198,5 +218,12 @@ img {
   }
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Better mobile touch targets */
+@media (max-width: 767px) {
+  button, a {
+    min-height: 36px;
   }
 }
