@@ -25,7 +25,7 @@ export async function PUT(req: Request) {
         const allowedFields = [
             'full_name', 'bio', 'sport', 'position', 'height', 
             'weight', 'top_speed', 'vertical_leap', 'recruiting_status', 
-            'city', 'state'
+            'city', 'state', 'avatar_url', 'cover_url'
         ];
 
         const sqlSetClauses = [];

@@ -49,12 +49,25 @@ export default function CreatePostPage() {
             let mediaUrl = null;
             let mediaType = 'text';
 
-            // For now, if a file is selected, use the preview URL as a placeholder
-            // In production, you'd upload to a storage service first
+            // Upload file to server first
             if (selectedFile) {
                 mediaType = selectedFile.type.startsWith('video/') ? 'video' : 'image';
-                // TODO: Upload file to storage and get URL
-                mediaUrl = previewUrl;
+
+                const uploadForm = new FormData();
+                uploadForm.append('file', selectedFile);
+
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: uploadForm,
+                });
+
+                if (!uploadRes.ok) {
+                    const err = await uploadRes.json();
+                    throw new Error(err.error || 'Upload failed');
+                }
+
+                const uploadData = await uploadRes.json();
+                mediaUrl = uploadData.url;
             }
 
             const res = await fetch('/api/posts', {
@@ -70,13 +83,13 @@ export default function CreatePostPage() {
 
             if (!res.ok) throw new Error('Failed to create post');
 
-            // Navigate home on success
             router.push("/");
         } catch (error) {
             console.error('Share Error:', error);
             setIsSharing(false);
         }
     };
+
 
     const canShare = caption.trim().length > 0 || selectedFile;
 

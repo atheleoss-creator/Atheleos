@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useEffect } from "react";
+import React, { use, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
@@ -13,12 +13,29 @@ import {
     Squares2X2Icon,
     InformationCircleIcon,
     TrophyIcon,
+    TrashIcon,
+    UserIcon,
+    MapPinIcon,
+    CalendarDaysIcon,
+    SparklesIcon,
+    XMarkIcon,
+    CameraIcon,
 } from "@heroicons/react/24/outline";
+import { formatDistanceToNow } from "date-fns";
+
+interface FollowUser {
+    id: number;
+    username: string;
+    full_name: string;
+    avatar_url: string;
+    is_verified: boolean;
+    verification_level: string;
+}
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
     const { username } = use(params);
     const { user: currentUser } = useAuth();
-    
+
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -26,6 +43,19 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
+
+    // Followers/Following modal
+    const [showFollowModal, setShowFollowModal] = useState(false);
+    const [followModalType, setFollowModalType] = useState<"followers" | "following">("followers");
+    const [followList, setFollowList] = useState<FollowUser[]>([]);
+    const [followListLoading, setFollowListLoading] = useState(false);
+
+    // Delete post
+    const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+
+    // Avatar upload
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
 
     const isOwnProfile = currentUser?.username === username;
 
@@ -73,6 +103,71 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         }
     };
 
+    // Followers/Following modal handlers
+    const openFollowModal = async (type: "followers" | "following") => {
+        setFollowModalType(type);
+        setShowFollowModal(true);
+        setFollowListLoading(true);
+        try {
+            const res = await fetch(`/api/follow/list?userId=${profile.id}&type=${type}`);
+            if (res.ok) {
+                const data = await res.json();
+                setFollowList(data.users || []);
+            }
+        } catch (err) {
+            console.error('Failed to load follow list', err);
+        } finally {
+            setFollowListLoading(false);
+        }
+    };
+
+    // Delete post handler
+    const handleDeletePost = async (postId: number) => {
+        if (!confirm('Delete this post? This cannot be undone.')) return;
+        setDeletingPostId(postId);
+        try {
+            const res = await fetch(`/api/posts?id=${postId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed');
+            setProfile((prev: any) => ({
+                ...prev,
+                posts: prev.posts.filter((p: any) => p.id !== postId)
+            }));
+        } catch (err) {
+            console.error('Delete failed:', err);
+        } finally {
+            setDeletingPostId(null);
+        }
+    };
+
+    // Avatar upload handler
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setAvatarUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+            if (!uploadRes.ok) throw new Error('Upload failed');
+            const { url } = await uploadRes.json();
+
+            const editRes = await fetch('/api/profile/edit', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar_url: url })
+            });
+            if (!editRes.ok) throw new Error('Save failed');
+
+            setProfile((prev: any) => ({ ...prev, avatar_url: url }));
+        } catch (err) {
+            console.error('Avatar upload failed:', err);
+        } finally {
+            setAvatarUploading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-bg-body flex items-center justify-center">
@@ -97,6 +192,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
     const avatarUrl = profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}&background=random`;
     const coverUrl = profile.cover_url || `https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=1000&h=300&fit=crop`;
+
+    const tabs = [
+        { id: 'posts', label: 'Posts', icon: Squares2X2Icon },
+        { id: 'about', label: 'About', icon: UserIcon },
+        { id: 'player_card', label: 'Player Card', icon: InformationCircleIcon },
+        { id: 'highlights', label: 'Highlights', icon: SparklesIcon },
+    ];
 
     return (
         <div className="pb-24 md:pb-8 min-h-screen bg-bg-body animate-fade-in">
@@ -125,15 +227,38 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             {/* Profile Info */}
             <div className="px-4 py-2 md:px-8 mt-14 md:mt-0 md:-mt-[50px] relative z-20">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-4">
-                    
+
                     {/* Avatar & Name */}
                     <div className="flex flex-col md:flex-row md:items-end gap-4 mb-4 md:mb-0">
-                        <div className="relative shrink-0">
+                        <div className="relative shrink-0 group/avatar">
                             <div className="w-[90px] h-[90px] md:w-[130px] md:h-[130px] rounded-2xl p-[3px] bg-gradient-to-tr from-accent-primary via-purple-500 to-accent-secondary shadow-[0_0_30px_rgba(0,212,255,0.2)]">
                                 <div className="w-full h-full rounded-[13px] border-4 border-bg-body overflow-hidden relative bg-bg-surface">
                                     <Image src={avatarUrl} alt={profile.username} fill className="object-cover" unoptimized />
+                                    {avatarUploading && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                            <div className="w-6 h-6 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                            {/* Upload button (own profile only) */}
+                            {isOwnProfile && (
+                                <>
+                                    <input
+                                        ref={avatarInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        onChange={handleAvatarUpload}
+                                        className="hidden"
+                                    />
+                                    <button
+                                        onClick={() => avatarInputRef.current?.click()}
+                                        className="absolute -bottom-1 -right-1 w-9 h-9 bg-accent-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-accent-primary/30 border-2 border-bg-body hover:scale-110 active:scale-95 transition-transform"
+                                    >
+                                        <CameraIcon className="w-4.5 h-4.5" />
+                                    </button>
+                                </>
+                            )}
                         </div>
 
                         <div className="flex flex-col pb-2">
@@ -144,10 +269,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 {profile.is_verified && profile.verification_level && <Badge level={profile.verification_level} className="w-6 h-6" />}
                             </div>
                             <span className="text-sm md:text-base text-accent-primary font-bold tracking-wide">@{profile.username}</span>
-                            
+
                             {profile.recruiting_status && profile.recruiting_status !== 'Not Looking' && (
                                 <div className={`inline-flex w-fit px-3 py-1 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest backdrop-blur-sm ${
-                                    profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 
+                                    profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                                     'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'}`}>
                                     {profile.recruiting_status}
                                 </div>
@@ -177,18 +302,20 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     </div>
                 </div>
 
-                {/* Stats */}
+                {/* Stats — clickable */}
                 <div className="flex flex-wrap gap-3 mb-5 mt-3">
-                    {[
-                        { value: profile.posts?.length || 0, label: 'Posts' },
-                        { value: profile.followersCount || 0, label: 'Followers' },
-                        { value: profile.followingCount || 0, label: 'Following' },
-                    ].map((stat) => (
-                        <div key={stat.label} className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 hover:bg-white/[0.06] transition-colors backdrop-blur-sm">
-                            <span className="font-black text-lg text-white">{stat.value}</span>
-                            <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">{stat.label}</span>
-                        </div>
-                    ))}
+                    <div className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 backdrop-blur-sm">
+                        <span className="font-black text-lg text-white">{profile.posts?.length || 0}</span>
+                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Posts</span>
+                    </div>
+                    <button onClick={() => openFollowModal('followers')} className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 backdrop-blur-sm hover:bg-white/[0.06] hover:border-accent-primary/20 transition-all cursor-pointer">
+                        <span className="font-black text-lg text-white">{profile.followersCount || 0}</span>
+                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Followers</span>
+                    </button>
+                    <button onClick={() => openFollowModal('following')} className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 backdrop-blur-sm hover:bg-white/[0.06] hover:border-accent-primary/20 transition-all cursor-pointer">
+                        <span className="font-black text-lg text-white">{profile.followingCount || 0}</span>
+                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Following</span>
+                    </button>
                 </div>
 
                 {profile.bio && (
@@ -200,16 +327,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
             {/* Tabs */}
             <div className="border-b border-white/[0.06] bg-black/60 backdrop-blur-xl z-10 px-4 md:px-8 sticky top-[56px] md:top-[64px]">
-                <div className="flex gap-8 overflow-x-auto scrollbar-hide">
-                    {['posts', 'player_card'].map((tab) => (
+                <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+                    {tabs.map((tab) => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex items-center gap-2 py-4 border-b-2 font-bold text-[13px] tracking-wider uppercase whitespace-nowrap transition-colors ${activeTab === tab ? "border-accent-primary text-accent-primary" : "border-transparent text-text-tertiary hover:text-white"}`}
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 py-4 border-b-2 font-bold text-[13px] tracking-wider uppercase whitespace-nowrap transition-colors ${activeTab === tab.id ? "border-accent-primary text-accent-primary" : "border-transparent text-text-tertiary hover:text-white"}`}
                         >
-                            {tab === "posts" && <Squares2X2Icon className="w-5 h-5" />}
-                            {tab === "player_card" && <InformationCircleIcon className="w-5 h-5" />}
-                            {tab.replace('_', ' ')}
+                            <tab.icon className="w-5 h-5" />
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -217,7 +343,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
             {/* Tab Content */}
             <div className="px-4 py-5 md:px-8 min-h-[50vh]">
-                
+
+                {/* Posts Tab */}
                 {activeTab === "posts" && (
                     <div className="grid grid-cols-3 gap-1 md:gap-3">
                         {profile.posts?.length > 0 ? profile.posts.map((post: any) => (
@@ -226,14 +353,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                     <>
                                         <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-4">
-                                            <span className="text-white font-bold text-sm flex items-center gap-1">❤️ {post.likes || 0}</span>
-                                            <span className="text-white font-bold text-sm flex items-center gap-1">💬 {post.comments || 0}</span>
+                                            <span className="text-white font-bold text-sm flex items-center gap-1">❤️ {post.likes_count || 0}</span>
+                                            <span className="text-white font-bold text-sm flex items-center gap-1">💬 {post.comments_count || 0}</span>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="p-3 w-full h-full flex items-center justify-center text-[12px] text-center text-text-secondary break-words line-clamp-4 bg-gradient-to-br from-accent-primary/5 to-accent-secondary/5">
                                         {post.caption}
                                     </div>
+                                )}
+                                {/* Delete button — own posts only */}
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }}
+                                        disabled={deletingPostId === post.id}
+                                        className="absolute top-2 right-2 w-8 h-8 bg-black/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-300 transition-all z-10 border border-white/[0.06]"
+                                        title="Delete post"
+                                    >
+                                        {deletingPostId === post.id ? (
+                                            <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                                        ) : (
+                                            <TrashIcon className="w-4 h-4" />
+                                        )}
+                                    </button>
                                 )}
                             </div>
                         )) : (
@@ -250,9 +392,85 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     </div>
                 )}
 
+                {/* About Tab */}
+                {activeTab === "about" && (
+                    <div className="max-w-2xl animate-fade-in flex flex-col gap-5">
+                        {/* Bio Card */}
+                        <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 backdrop-blur-sm">
+                            <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-4">Bio</h3>
+                            <p className="text-[15px] text-text-secondary leading-relaxed whitespace-pre-wrap">
+                                {profile.bio || "No bio yet."}
+                            </p>
+                        </div>
+
+                        {/* Details Card */}
+                        <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 backdrop-blur-sm">
+                            <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-5">Details</h3>
+                            <div className="flex flex-col gap-4">
+                                {profile.sport && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+                                            <TrophyIcon className="w-5 h-5 text-accent-primary" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Sport</div>
+                                            <div className="text-white font-semibold text-[15px]">{profile.sport}{profile.position ? ` · ${profile.position}` : ''}</div>
+                                        </div>
+                                    </div>
+                                )}
+                                {(profile.city || profile.state) && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+                                            <MapPinIcon className="w-5 h-5 text-accent-primary" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Location</div>
+                                            <div className="text-white font-semibold text-[15px]">{[profile.city, profile.state].filter(Boolean).join(', ')}</div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+                                        <CalendarDaysIcon className="w-5 h-5 text-accent-primary" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Joined</div>
+                                        <div className="text-white font-semibold text-[15px]">
+                                            {profile.created_at ? formatDistanceToNow(new Date(profile.created_at), { addSuffix: true }) : 'Unknown'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+                                        <UserIcon className="w-5 h-5 text-accent-primary" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Role</div>
+                                        <div className="text-white font-semibold text-[15px] capitalize">{profile.role || 'Athlete'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recruiting */}
+                        {profile.recruiting_status && profile.recruiting_status !== 'Not Looking' && (
+                            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 backdrop-blur-sm">
+                                <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-4">Recruiting Status</h3>
+                                <div className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold ${
+                                    profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                    profile.recruiting_status === 'Free Agent' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                                    'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
+                                }`}>
+                                    {profile.recruiting_status}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Player Card Tab */}
                 {activeTab === "player_card" && (
                     <div className="flex flex-col gap-6 max-w-4xl animate-fade-in">
-                        
                         {/* Biometrics */}
                         <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 backdrop-blur-sm overflow-hidden relative">
                             <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-5">Physical Measurements</h3>
@@ -305,7 +523,113 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         </div>
                     </div>
                 )}
+
+                {/* Highlights Tab */}
+                {activeTab === "highlights" && (
+                    <div className="animate-fade-in">
+                        {profile.posts?.filter((p: any) => p.media_url).length > 0 ? (
+                            <div className="grid grid-cols-3 gap-1 md:gap-3">
+                                {profile.posts.filter((p: any) => p.media_url).map((post: any) => (
+                                    <div key={post.id} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors">
+                                        <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-4">
+                                            <span className="text-white font-bold text-sm flex items-center gap-1">❤️ {post.likes_count || 0}</span>
+                                            <span className="text-white font-bold text-sm flex items-center gap-1">💬 {post.comments_count || 0}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-16 text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                                    <SparklesIcon className="w-8 h-8 text-text-tertiary" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white mb-1">No highlights yet</h3>
+                                <p className="text-sm text-text-tertiary">
+                                    {isOwnProfile ? "Post photos and videos to build your highlight reel!" : `${profile.username} hasn't shared any media yet.`}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
+
+            {/* Followers/Following Modal */}
+            {showFollowModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setShowFollowModal(false)}>
+                    <div className="bg-[#111] border border-white/[0.08] rounded-2xl w-full max-w-md mx-4 max-h-[70vh] flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+                            <div className="flex gap-6">
+                                <button
+                                    onClick={() => { setFollowModalType('followers'); openFollowModal('followers'); }}
+                                    className={`text-sm font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors ${followModalType === 'followers' ? 'border-accent-primary text-white' : 'border-transparent text-text-tertiary hover:text-white'}`}
+                                >
+                                    Followers
+                                </button>
+                                <button
+                                    onClick={() => { setFollowModalType('following'); openFollowModal('following'); }}
+                                    className={`text-sm font-bold uppercase tracking-wider pb-1 border-b-2 transition-colors ${followModalType === 'following' ? 'border-accent-primary text-white' : 'border-transparent text-text-tertiary hover:text-white'}`}
+                                >
+                                    Following
+                                </button>
+                            </div>
+                            <button onClick={() => setShowFollowModal(false)} className="text-text-tertiary hover:text-white p-1 -mr-1 transition-colors">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto no-scrollbar">
+                            {followListLoading ? (
+                                <div className="flex flex-col gap-1 p-4">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                                            <div className="w-12 h-12 rounded-full skeleton shrink-0" />
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <div className="h-3 w-28 skeleton" />
+                                                <div className="h-3 w-20 skeleton" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : followList.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <UserIcon className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
+                                    <p className="text-text-tertiary text-sm">
+                                        {followModalType === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="p-2">
+                                    {followList.map((u) => {
+                                        const uAvatar = u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}&background=random`;
+                                        return (
+                                            <Link
+                                                key={u.id}
+                                                href={`/profile/${u.username}`}
+                                                onClick={() => setShowFollowModal(false)}
+                                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors"
+                                            >
+                                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-white/[0.06]">
+                                                    <Image src={uAvatar} alt={u.username} width={48} height={48} className="w-full h-full object-cover" unoptimized />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-bold text-white text-[15px] truncate">{u.full_name || u.username}</span>
+                                                        {u.is_verified && <Badge level={u.verification_level} className="w-4 h-4" />}
+                                                    </div>
+                                                    <span className="text-[13px] text-text-tertiary">@{u.username}</span>
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

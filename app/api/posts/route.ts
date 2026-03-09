@@ -81,3 +81,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const currentUserId = await getUserId();
+    if (!currentUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const postId = searchParams.get('id');
+
+    if (!postId) {
+      return NextResponse.json({ error: 'Missing post id' }, { status: 400 });
+    }
+
+    // Verify ownership
+    const post: any = await query('SELECT user_id FROM posts WHERE id = ?', [postId]);
+    if (post.length === 0) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+    if (post[0].user_id !== currentUserId) {
+      return NextResponse.json({ error: 'Not authorized to delete this post' }, { status: 403 });
+    }
+
+    // Delete related data first, then the post
+    await query('DELETE FROM likes WHERE post_id = ?', [postId]);
+    await query('DELETE FROM comments WHERE post_id = ?', [postId]);
+    await query('DELETE FROM saved_posts WHERE post_id = ?', [postId]).catch(() => {});
+    await query('DELETE FROM posts WHERE id = ?', [postId]);
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error('Delete Post Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
