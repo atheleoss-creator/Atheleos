@@ -12,6 +12,7 @@ import {
     EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid, BookmarkIcon as BookmarkIconSolid } from "@heroicons/react/24/solid";
+import { useAuth } from "@/context/AuthContext";
 
 interface Post {
     id: number;
@@ -30,12 +31,14 @@ interface Post {
 }
 
 export default function FeedPost({ post }: { post: Post }) {
+    const { user } = useAuth();
     const [isLiked, setIsLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likes);
     const [isSaved, setIsSaved] = useState(post.isSaved);
     const [commentText, setCommentText] = useState("");
     const [commentCount, setCommentCount] = useState(post.comments);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
 
     const toggleLike = async () => {
         setIsLiked(!isLiked);
@@ -86,14 +89,22 @@ export default function FeedPost({ post }: { post: Post }) {
         }
     };
 
+    const handleDoubleTap = () => {
+        if (!isLiked) {
+            toggleLike();
+        }
+        setShowDoubleTapHeart(true);
+        setTimeout(() => setShowDoubleTapHeart(false), 800);
+    };
+
     return (
-        <div className="bg-bg-card border border-border-color rounded-2xl overflow-hidden mb-2 relative">
+        <div className="bg-black border border-white/[0.06] rounded-2xl overflow-hidden mb-2 relative shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:border-white/[0.1] transition-colors duration-300">
 
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-border-color/50">
+            <div className="flex items-center justify-between p-3.5">
                 <div className="flex items-center gap-3">
                     <Link href={`/profile/${post.username}`}>
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border-color hover:border-accent-primary transition-colors cursor-pointer">
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/10 hover:ring-accent-primary/50 transition-all cursor-pointer">
                             <Image
                                 src={post.avatarUrl}
                                 alt={post.username}
@@ -104,32 +115,32 @@ export default function FeedPost({ post }: { post: Post }) {
                         </div>
                     </Link>
                     <div className="flex flex-col">
-                        <Link href={`/profile/${post.username}`} className="font-bold text-[14px] text-text-primary hover:text-text-secondary transition-colors">
+                        <Link href={`/profile/${post.username}`} className="font-bold text-[14px] text-white hover:text-accent-primary transition-colors">
                             {post.username}
                         </Link>
                         {post.isSuggested ? (
                             <div className="text-[12px] text-text-secondary">Suggested for you</div>
                         ) : post.location ? (
-                            <div className="text-[12px] text-accent-primary">{post.location}</div>
+                            <div className="text-[12px] text-accent-primary font-medium">{post.location}</div>
                         ) : (
-                            <div className="text-[11px] text-text-muted">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</div>
+                            <div className="text-[11px] text-text-tertiary">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</div>
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     {post.isSuggested && (
-                        <button className="px-4 py-1.5 bg-accent-primary/10 text-accent-primary text-xs font-bold rounded-lg hover:bg-accent-primary hover:text-white transition-all uppercase tracking-wider">
+                        <button className="px-4 py-1.5 bg-accent-primary text-black text-xs font-bold rounded-lg hover:bg-white hover:text-black transition-all uppercase tracking-wider shadow-[0_0_10px_rgba(0,212,255,0.2)]">
                             Follow
                         </button>
                     )}
-                    <button className="text-text-secondary hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors">
-                        <EllipsisHorizontalIcon className="w-6 h-6" />
+                    <button className="text-text-tertiary hover:text-white p-1.5 hover:bg-white/5 rounded-full transition-colors">
+                        <EllipsisHorizontalIcon className="w-5 h-5" />
                     </button>
                 </div>
             </div>
 
-            {/* Media Canvas */}
-            <div className="relative w-full aspect-[4/5] bg-bg-body overflow-hidden border-b border-t border-border-color">
+            {/* Media */}
+            <div className="relative w-full aspect-[4/5] bg-bg-surface overflow-hidden" onDoubleClick={handleDoubleTap}>
                 {post.mediaType === "video" ? (
                     <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
                 ) : (
@@ -141,53 +152,59 @@ export default function FeedPost({ post }: { post: Post }) {
                         unoptimized
                     />
                 )}
+                {/* Double-tap heart animation */}
+                {showDoubleTapHeart && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <HeartIconSolid className="w-24 h-24 text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] animate-scale-in" />
+                    </div>
+                )}
             </div>
 
-            {/* Interactive Actions Layout */}
-            <div className="px-4 py-3 flex justify-between items-center bg-bg-card">
-                <div className="flex gap-4">
-                    <button onClick={toggleLike} className="transition-transform active:scale-[0.80] hover:scale-110 p-1 -ml-1 inline-flex items-center gap-2 group">
+            {/* Actions */}
+            <div className="px-4 py-3 flex justify-between items-center">
+                <div className="flex gap-3">
+                    <button onClick={toggleLike} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
                         {isLiked ? (
                             <HeartIconSolid className="w-7 h-7 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                         ) : (
-                            <HeartIcon className="w-7 h-7 text-text-primary group-hover:text-red-500 transition-colors" />
+                            <HeartIcon className="w-7 h-7 text-white group-hover:text-red-400 transition-colors" />
                         )}
-                        <span className="font-bold text-sm select-none">{likeCount.toLocaleString()}</span>
+                        <span className="font-bold text-[13px] select-none text-white">{likeCount.toLocaleString()}</span>
                     </button>
 
-                    <button className="transition-transform active:scale-[0.80] hover:scale-110 p-1 inline-flex items-center gap-2 group">
-                        <ChatBubbleOvalLeftIcon className="w-7 h-7 text-text-primary group-hover:text-blue-500 transition-colors" />
-                        <span className="font-bold text-sm select-none">{commentCount}</span>
+                    <button className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
+                        <ChatBubbleOvalLeftIcon className="w-7 h-7 text-white group-hover:text-accent-primary transition-colors" />
+                        <span className="font-bold text-[13px] select-none text-white">{commentCount}</span>
                     </button>
 
-                    <button className="transition-transform active:scale-[0.80] hover:scale-110 p-1 inline-flex items-center group">
-                        <PaperAirplaneIcon className="w-7 h-7 -rotate-45 mb-1 text-text-primary group-hover:text-green-500 transition-colors" />
+                    <button className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center group">
+                        <PaperAirplaneIcon className="w-7 h-7 -rotate-45 mb-1 text-white group-hover:text-green-400 transition-colors" />
                     </button>
                 </div>
 
-                <button onClick={toggleSave} className="transition-transform active:scale-[0.80] hover:scale-110 p-1 -mr-1 group">
+                <button onClick={toggleSave} className="transition-transform active:scale-75 hover:scale-110 p-0.5 group">
                     {isSaved ? (
                         <BookmarkIconSolid className="w-7 h-7 text-[#FACC15] drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
                     ) : (
-                        <BookmarkIcon className="w-7 h-7 text-text-primary group-hover:text-[#FACC15] transition-colors" />
+                        <BookmarkIcon className="w-7 h-7 text-white group-hover:text-[#FACC15] transition-colors" />
                     )}
                 </button>
             </div>
 
-            {/* Caption Block */}
+            {/* Caption */}
             <div className="px-4 pb-3">
-                <div className="text-[14px] leading-snug">
-                    <Link href={`/profile/${post.username}`} className="font-bold mr-2 hover:underline">
+                <div className="text-[14px] leading-relaxed">
+                    <Link href={`/profile/${post.username}`} className="font-bold mr-2 hover:underline text-white">
                         {post.username}
                     </Link>
                     <span className="text-text-secondary whitespace-pre-wrap">{post.caption}</span>
                 </div>
             </div>
 
-            {/* Comment Input Footer */}
-            <div className="px-4 py-3 border-t border-border-color flex items-center gap-3 bg-bg-surface">
-                <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex flex-col items-center justify-center shrink-0 border border-accent-primary/50 text-xs">
-                    U
+            {/* Comment Input */}
+            <div className="px-4 py-3 border-t border-white/[0.06] flex items-center gap-3 bg-white/[0.02]">
+                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
+                    <Image src={user?.avatarUrl || "/default_avatar.png"} alt="You" width={32} height={32} className="object-cover w-full h-full" unoptimized />
                 </div>
                 <input
                     type="text"
@@ -195,12 +212,12 @@ export default function FeedPost({ post }: { post: Post }) {
                     onChange={(e) => setCommentText(e.target.value)}
                     onKeyDown={handleCommentKeyDown}
                     placeholder="Add a comment..."
-                    className="bg-transparent flex-1 text-[13px] outline-none text-text-primary placeholder:text-text-muted"
+                    className="bg-transparent flex-1 text-[13px] outline-none text-white placeholder:text-text-tertiary"
                 />
                 <button
                     onClick={submitComment}
                     disabled={!commentText.trim() || isSubmitting}
-                    className="text-accent-primary font-bold text-[13px] uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:text-white transition-colors"
+                    className="text-accent-primary font-bold text-[13px] uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:text-white transition-colors"
                 >
                     Post
                 </button>
