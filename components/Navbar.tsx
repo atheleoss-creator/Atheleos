@@ -49,7 +49,7 @@ export default function Navbar() {
                         <NavItem href="/notifications" icon={<NotificationsIcon className="w-[22px] h-[22px]" />} active={pathname === "/notifications"} label="Alerts" />
 
                         <Link href={user?.username ? `/profile/${user.username}` : '#'} className="ml-1.5 group">
-                            <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname.startsWith("/profile")
+                            <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname?.startsWith("/profile")
                                 ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.3)]"
                                 : "ring-white/10 group-hover:ring-accent-primary/50"
                                 }`}>
@@ -68,7 +68,7 @@ export default function Navbar() {
             </nav>
 
             {/* Mobile Top Bar */}
-            {!pathname.startsWith("/profile") && (
+            {!pathname?.startsWith("/profile") && (
                 <div className="md:hidden flex fixed top-0 left-0 right-0 h-[56px] bg-black/80 backdrop-blur-xl border-b border-white/[0.06] z-50 items-center justify-between px-4 shadow-lg">
                     <Link href="/notifications" className="text-text-secondary hover:text-accent-primary transition-colors p-1.5 rounded-xl hover:bg-white/5">
                         <NotificationsIcon className="w-6 h-6" />
@@ -101,7 +101,7 @@ export default function Navbar() {
                     } active={pathname === "/create-post"} isCreate />
                     <MobileNavItem href="/reels" icon={<ReelsIcon className="w-6 h-6" />} active={pathname === "/reels"} />
                     <Link href={user?.username ? `/profile/${user.username}` : '#'} className="flex-1 flex items-center justify-center h-full">
-                        <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${pathname.startsWith("/profile") ? "ring-accent-primary" : "ring-transparent"}`}>
+                        <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${pathname?.startsWith("/profile") ? "ring-accent-primary" : "ring-transparent"}`}>
                             <Image
                                 src={user?.avatarUrl || "/default_avatar.svg"}
                                 alt="Profile"

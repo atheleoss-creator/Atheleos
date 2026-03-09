@@ -57,7 +57,7 @@ export default function Sidebar() {
             {/* User Card */}
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4 hover:border-accent-primary/30 transition-all duration-300 backdrop-blur-sm group">
                 <Link href={user?.username ? `/profile/${user.username}` : '#'} className="relative w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-accent-primary/50 transition-all shrink-0">
-                    <Image src={user.avatarUrl || "/default_avatar.svg"} alt={user.username} fill className="object-cover" unoptimized />
+                    <Image src={user?.avatarUrl || "/default_avatar.svg"} alt={user?.username || "Profile"} fill className="object-cover" unoptimized />
                 </Link>
                 <div className="flex-1 overflow-hidden">
                     <Link href={user?.username ? `/profile/${user.username}` : '#'} className="font-bold text-white hover:text-accent-primary block text-[15px] transition-colors">
@@ -99,7 +99,7 @@ export default function Sidebar() {
                             <div key={s.id} className="flex items-center justify-between group/item">
                                 <div className="flex items-center gap-3">
                                     <Link href={`/profile/${s.username}`} className="w-10 h-10 ring-1 ring-white/10 rounded-full bg-bg-surface overflow-hidden relative hover:ring-accent-primary/50 transition-all cursor-pointer shrink-0">
-                                        <Image src={avatarUrl} alt={s.username} fill className="object-cover" unoptimized />
+                                        <Image src={avatarUrl} alt={s?.username || "Suggested athlete"} fill className="object-cover" unoptimized />
                                     </Link>
                                     <div className="flex flex-col">
                                         <Link href={`/profile/${s.username}`} className="font-bold text-white text-[13px] leading-tight hover:text-accent-primary transition-colors">{s.username}</Link>
