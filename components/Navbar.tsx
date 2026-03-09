@@ -48,7 +48,7 @@ export default function Navbar() {
                         <NavItem href="/messages" icon={<MessagesIcon className="w-[22px] h-[22px]" />} active={pathname === "/messages"} label="Messages" />
                         <NavItem href="/notifications" icon={<NotificationsIcon className="w-[22px] h-[22px]" />} active={pathname === "/notifications"} label="Alerts" />
 
-                        <Link href="/profile" className="ml-1.5 group">
+                        <Link href={user?.username ? `/profile/${user.username}` : '#'} className="ml-1.5 group">
                             <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname.startsWith("/profile")
                                 ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.3)]"
                                 : "ring-white/10 group-hover:ring-accent-primary/50"
@@ -100,7 +100,7 @@ export default function Navbar() {
                         </div>
                     } active={pathname === "/create-post"} isCreate />
                     <MobileNavItem href="/reels" icon={<ReelsIcon className="w-6 h-6" />} active={pathname === "/reels"} />
-                    <Link href="/profile" className="flex-1 flex items-center justify-center h-full">
+                    <Link href={user?.username ? `/profile/${user.username}` : '#'} className="flex-1 flex items-center justify-center h-full">
                         <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${pathname.startsWith("/profile") ? "ring-accent-primary" : "ring-transparent"}`}>
                             <Image
                                 src={user?.avatarUrl || "/default_avatar.svg"}
