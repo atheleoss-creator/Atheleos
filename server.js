@@ -3,7 +3,8 @@ const { parse } = require("url");
 const next = require("next");
 const path = require("path");
 
-const dev = process.env.NODE_ENV !== "production";
+// Enforce production mode on Hostinger by defaulting dev to false unless explicitly set to development
+const dev = process.env.NODE_ENV === "development";
 const hostname = "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
@@ -22,6 +23,8 @@ app.prepare().then(() => {
       res.end("internal server error");
     }
   }).listen(port, hostname, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
+    console.log(
+      `> Ready on http://${hostname}:${port} in ${dev ? "development" : "production"} mode`,
+    );
   });
 });
