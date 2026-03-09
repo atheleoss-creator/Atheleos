@@ -68,10 +68,10 @@ export default function VerificationPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#000000] pb-safe font-sans">
+        <div className="min-h-screen bg-black pb-safe font-sans">
             {/* Header */}
-            <div className="relative top-0 z-10 px-4 py-4 flex items-center border-b border-border-color bg-black">
-                <button onClick={() => router.back()} className="mr-4">
+            <div className="relative top-0 z-10 px-4 py-4 flex items-center border-b border-white/[0.06] bg-black/80 backdrop-blur-xl">
+                <button onClick={() => router.back()} className="mr-4 p-1.5 hover:bg-white/5 rounded-xl transition-colors">
                     <ArrowLeftIcon className="w-6 h-6 text-white" />
                 </button>
                 <h1 className="text-lg font-bold text-white">Apply for Verification</h1>
@@ -115,40 +115,40 @@ export default function VerificationPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Full Name */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-white tracking-wide">Full Name</label>
+                        <label className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest">Full Name</label>
                         <input
                             type="text"
                             required
                             value={formData.fullName}
                             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                            className="w-full bg-black border border-neutral-700/80 rounded-[10px] px-4 py-3.5 text-white focus:border-white focus:outline-none transition-colors placeholder-neutral-500 text-[15px]"
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3.5 text-white focus:border-accent-primary/50 focus:outline-none transition-colors placeholder:text-text-tertiary text-[15px]"
                             placeholder="Enter your full name"
                         />
                     </div>
 
                     {/* Sport */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-white tracking-wide">Sport / Category</label>
+                        <label className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest">Sport / Category</label>
                         <input
                             type="text"
                             required
                             value={formData.sport}
                             onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
-                            className="w-full bg-black border border-neutral-700/80 rounded-[10px] px-4 py-3.5 text-white focus:border-white focus:outline-none transition-colors placeholder-neutral-500 text-[15px]"
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3.5 text-white focus:border-accent-primary/50 focus:outline-none transition-colors placeholder:text-text-tertiary text-[15px]"
                             placeholder="e.g. Swimming, Cricket, Chess"
                         />
                     </div>
 
                     {/* Level Selection */}
                     <div className="space-y-3 pt-2">
-                        <label className="text-sm font-bold text-white tracking-wide">Achievement Level</label>
+                        <label className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest">Achievement Level</label>
                         <div className="grid grid-cols-1 gap-3">
                             {levels.map((level) => (
                                 <label
                                     key={level.id}
-                                    className={`flex items-center p-3.5 rounded-[10px] border cursor-pointer transition-all ${formData.level === level.id
-                                        ? "border-accent-primary bg-black"
-                                        : "border-neutral-700/80 bg-black hover:border-neutral-600"
+                                    className={`flex items-center p-3.5 rounded-xl border cursor-pointer transition-all ${formData.level === level.id
+                                        ? "border-accent-primary/50 bg-accent-primary/5"
+                                        : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"
                                         }`}
                                 >
                                     <div className="relative flex items-center justify-center w-4 h-4 mr-4">
@@ -160,7 +160,7 @@ export default function VerificationPage() {
                                             onChange={(e) => setFormData({ ...formData, level: e.target.value })}
                                             className="w-full h-full opacity-0 absolute cursor-pointer z-10"
                                         />
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.level === level.id ? 'border-accent-primary' : 'border-neutral-500'
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.level === level.id ? 'border-accent-primary' : 'border-white/20'
                                             }`}>
                                             {formData.level === level.id && (
                                                 <div className="w-2 h-2 bg-accent-primary rounded-full" />
@@ -180,8 +180,8 @@ export default function VerificationPage() {
                     {/* Document Upload */}
                     {formData.level !== "struggler" && (
                         <div className="space-y-2 pt-2">
-                            <label className="text-sm font-bold text-white tracking-wide border-b border-dashed border-transparent pb-1">Proof of Achievement</label>
-                            <div className="border border-dashed border-neutral-600 rounded-xl p-8 flex flex-col items-center justify-center bg-black hover:bg-neutral-900/50 transition-colors cursor-pointer relative mt-2">
+                            <label className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest">Proof of Achievement</label>
+                            <div className="border border-dashed border-white/[0.12] rounded-xl p-8 flex flex-col items-center justify-center bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer relative mt-2">
                                 <input
                                     type="file"
                                     required={!isPending && formData.level !== "struggler"} // require if not just viewing pending state
@@ -217,7 +217,7 @@ export default function VerificationPage() {
                         <button
                             type="submit"
                             disabled={isSubmitting || isPending}
-                            className={`w-full text-black font-bold py-3.5 rounded-xl transition-all ${isPending ? "bg-neutral-600 cursor-not-allowed text-white" : "bg-white hover:bg-neutral-200"
+                            className={`w-full font-bold py-3.5 rounded-xl transition-all ${isPending ? "bg-white/[0.06] cursor-not-allowed text-text-tertiary" : "bg-gradient-to-r from-accent-primary to-accent-secondary text-white hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] active:scale-95"
                                 }`}
                         >
                             {isSubmitting ? "Submitting..." : isPending ? "Request Pending" : "Apply for Verification"}

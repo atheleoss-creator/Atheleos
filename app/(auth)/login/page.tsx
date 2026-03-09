@@ -57,25 +57,24 @@ export default function LoginPage() {
     return (
         <div className="relative flex flex-col items-center justify-center w-full min-h-screen px-6 py-12 overflow-hidden">
 
-            {/* Animated Background Decorations */}
+            {/* Animated decorations */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[10%] left-[5%] w-20 h-20 rounded-full border border-accent-primary/20 animate-[spin_20s_linear_infinite]" />
-                <div className="absolute bottom-[15%] right-[8%] w-32 h-32 rounded-full border border-accent-secondary/15 animate-[spin_25s_linear_infinite_reverse]" />
-                <div className="absolute top-[30%] right-[15%] w-3 h-3 rounded-full bg-accent-primary/30 animate-pulse" />
-                <div className="absolute bottom-[40%] left-[12%] w-2 h-2 rounded-full bg-accent-secondary/30 animate-pulse delay-1000" />
-                {/* Sport emoji decorations */}
-                <div className="absolute top-[20%] right-[20%] text-4xl opacity-10 animate-bounce" style={{animationDuration: '3s'}}>⚽</div>
-                <div className="absolute bottom-[25%] left-[15%] text-3xl opacity-10 animate-bounce" style={{animationDuration: '4s', animationDelay: '1s'}}>🏀</div>
-                <div className="absolute top-[60%] right-[10%] text-3xl opacity-10 animate-bounce" style={{animationDuration: '3.5s', animationDelay: '0.5s'}}>🏊</div>
-                <div className="absolute top-[15%] left-[25%] text-2xl opacity-10 animate-bounce" style={{animationDuration: '4.5s', animationDelay: '1.5s'}}>🎾</div>
+                <div className="absolute top-[10%] left-[5%] w-20 h-20 rounded-full border border-white/[0.06] animate-[spin_20s_linear_infinite]" />
+                <div className="absolute bottom-[15%] right-[8%] w-32 h-32 rounded-full border border-white/[0.04] animate-[spin_25s_linear_infinite_reverse]" />
+                <div className="absolute top-[30%] right-[15%] w-2.5 h-2.5 rounded-full bg-accent-primary/30 animate-pulse" />
+                <div className="absolute bottom-[40%] left-[12%] w-2 h-2 rounded-full bg-accent-secondary/20 animate-pulse" style={{animationDelay: '1s'}} />
+                <div className="absolute top-[20%] right-[20%] text-4xl opacity-[0.07] animate-bounce" style={{animationDuration: '3s'}}>⚽</div>
+                <div className="absolute bottom-[25%] left-[15%] text-3xl opacity-[0.07] animate-bounce" style={{animationDuration: '4s', animationDelay: '1s'}}>🏀</div>
+                <div className="absolute top-[60%] right-[10%] text-3xl opacity-[0.07] animate-bounce" style={{animationDuration: '3.5s', animationDelay: '0.5s'}}>🏊</div>
+                <div className="absolute top-[15%] left-[25%] text-2xl opacity-[0.07] animate-bounce" style={{animationDuration: '4.5s', animationDelay: '1.5s'}}>🎾</div>
             </div>
 
             {/* Main Card */}
             <div className="w-full max-w-[420px] relative z-10">
                 
-                {/* Logo & Branding */}
+                {/* Logo */}
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-secondary mb-5 shadow-lg shadow-accent-primary/25">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-secondary mb-5 shadow-[0_0_30px_rgba(0,212,255,0.3)]">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
                             <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clipRule="evenodd" />
                         </svg>
@@ -89,18 +88,18 @@ export default function LoginPage() {
                 </div>
 
                 {error && (
-                    <div className="mb-5 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl text-center backdrop-blur-sm">
+                    <div className="mb-5 bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl text-center backdrop-blur-sm animate-fade-in">
                         {error}
                     </div>
                 )}
 
                 {!requiresOtp ? (
-                    <div className="bg-bg-card/80 backdrop-blur-xl border border-border-color rounded-2xl p-7 shadow-2xl shadow-black/40">
+                    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-7 shadow-2xl shadow-black/50">
                         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                             <div>
-                                <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Email Address</label>
+                                <label className="block text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-2">Email Address</label>
                                 <div className="relative">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                                             <path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" />
                                             <path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" />
@@ -110,7 +109,7 @@ export default function LoginPage() {
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full bg-bg-input border border-border-color rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50 transition-all placeholder:text-text-muted"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/30 transition-all placeholder:text-text-tertiary"
                                         placeholder="you@example.com"
                                         required
                                     />
@@ -118,11 +117,11 @@ export default function LoginPage() {
                             </div>
                             <div>
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">Password</label>
-                                    <Link href="/forgot-password" className="text-xs text-accent-primary hover:underline font-medium">Forgot?</Link>
+                                    <label className="block text-[11px] font-bold text-text-tertiary uppercase tracking-widest">Password</label>
+                                    <Link href="/forgot-password" className="text-[11px] text-accent-primary hover:underline font-bold">Forgot?</Link>
                                 </div>
                                 <div className="relative">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                                             <path fillRule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clipRule="evenodd" />
                                         </svg>
@@ -131,7 +130,7 @@ export default function LoginPage() {
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-bg-input border border-border-color rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50 transition-all placeholder:text-text-muted"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/30 transition-all placeholder:text-text-tertiary"
                                         placeholder="Enter your password"
                                         required
                                     />
@@ -141,7 +140,7 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3.5 relative overflow-hidden group bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary bg-[length:200%_auto] hover:bg-[center_right_1rem] text-white font-extrabold rounded-xl hover:shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.5)] transform active:scale-95 transition-all duration-500 flex items-center justify-center gap-2 mt-2 disabled:opacity-60 disabled:hover:shadow-none"
+                                className="w-full py-3.5 relative overflow-hidden group bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary bg-[length:200%_auto] hover:bg-[center_right_1rem] text-white font-extrabold rounded-xl hover:shadow-[0_0_25px_rgba(0,212,255,0.4)] transform active:scale-95 transition-all duration-500 flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                             >
                                 <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full -translate-x-full transition-transform duration-700 ease-in-out skew-x-[-20deg]" />
                                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -162,9 +161,9 @@ export default function LoginPage() {
 
                         {/* Divider */}
                         <div className="flex items-center gap-4 my-6">
-                            <div className="flex-1 h-px bg-border-color" />
-                            <span className="text-xs text-text-muted font-bold uppercase tracking-wider">or</span>
-                            <div className="flex-1 h-px bg-border-color" />
+                            <div className="flex-1 h-px bg-white/[0.08]" />
+                            <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">or</span>
+                            <div className="flex-1 h-px bg-white/[0.08]" />
                         </div>
 
                         <p className="text-center text-sm text-text-secondary">
@@ -175,15 +174,15 @@ export default function LoginPage() {
                         </p>
                     </div>
                 ) : (
-                    /* OTP Verification View */
-                    <div className="bg-bg-card/80 backdrop-blur-xl border border-border-color rounded-2xl p-7 shadow-2xl shadow-black/40">
+                    /* OTP View */
+                    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-7 shadow-2xl shadow-black/50">
                         <div className="text-center mb-6">
-                            <div className="w-14 h-14 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent-primary/30">
+                            <div className="w-14 h-14 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent-primary/20">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7 text-accent-primary">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h2 className="text-xl font-bold text-text-primary mb-1">Check your email</h2>
+                            <h2 className="text-xl font-bold text-white mb-1">Check your email</h2>
                             <p className="text-text-secondary text-sm">
                                 We sent a 6-digit code to <span className="text-white font-semibold">{email}</span>
                             </p>
@@ -194,14 +193,14 @@ export default function LoginPage() {
                                 maxLength={6}
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                                className="w-full bg-bg-input border border-border-color rounded-xl px-4 py-4 text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/50 transition-all font-mono placeholder:text-text-muted placeholder:text-lg placeholder:tracking-normal"
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-4 text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/30 transition-all font-mono placeholder:text-text-tertiary placeholder:text-lg placeholder:tracking-normal"
                                 placeholder="000000"
                                 required
                             />
                             <button
                                 type="submit"
                                 disabled={loading || otp.length < 6}
-                                className="w-full py-3.5 relative overflow-hidden group bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary bg-[length:200%_auto] hover:bg-[center_right_1rem] text-white font-extrabold rounded-xl hover:shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.5)] transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-500 flex items-center justify-center"
+                                className="w-full py-3.5 relative overflow-hidden group bg-gradient-to-r from-accent-primary via-accent-secondary to-accent-primary bg-[length:200%_auto] hover:bg-[center_right_1rem] text-white font-extrabold rounded-xl hover:shadow-[0_0_25px_rgba(0,212,255,0.4)] transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-500 flex items-center justify-center"
                             >
                                 <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full -translate-x-full transition-transform duration-700 ease-in-out skew-x-[-20deg]" />
                                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -217,8 +216,7 @@ export default function LoginPage() {
                     </div>
                 )}
 
-                {/* Footer */}
-                <p className="text-center text-[11px] text-text-muted mt-8">
+                <p className="text-center text-[11px] text-text-tertiary mt-8">
                     By signing in, you agree to our Terms of Service and Privacy Policy.
                 </p>
             </div>
