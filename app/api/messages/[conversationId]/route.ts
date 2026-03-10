@@ -93,12 +93,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ convers
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    await query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)',
+    const result: any = await query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)',
       [conversationId, userId, content.trim()]);
 
     await query('UPDATE conversations SET updated_at = NOW() WHERE id = ?', [conversationId]);
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json({ success: true, messageId: result.insertId }, { status: 201 });
   } catch (error) {
     console.error('Send Message Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

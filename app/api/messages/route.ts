@@ -115,13 +115,13 @@ export async function POST(req: Request) {
     }
 
     // Insert message
-    await query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)',
+    const msgResult: any = await query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)',
       [conversationId, userId, content.trim()]);
 
     // Update conversation timestamp
     await query('UPDATE conversations SET updated_at = NOW() WHERE id = ?', [conversationId]);
 
-    return NextResponse.json({ success: true, conversationId }, { status: 201 });
+    return NextResponse.json({ success: true, conversationId, messageId: msgResult.insertId }, { status: 201 });
   } catch (error) {
     console.error('Send Message Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

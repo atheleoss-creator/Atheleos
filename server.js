@@ -44,28 +44,44 @@ app.prepare().then(() => {
       origin: "*",
       methods: ["GET", "POST"],
     },
+    pingInterval: 25000,
+    pingTimeout: 20000,
   });
 
   io.on("connection", (socket) => {
-    // 1. Register User Socket
+    // 1. Register User Socket + Online Presence
     socket.on("register", (userId) => {
       if (userId) {
-        userSocketMap.set(userId.toString(), socket.id);
+        const userIdStr = userId.toString();
+        userSocketMap.set(userIdStr, socket.id);
+
+        // Send the current online users list to the newly connected user
+        socket.emit("online_users", Array.from(userSocketMap.keys()));
+
+        // Broadcast to ALL connected sockets that this user is now online
+        socket.broadcast.emit("user_online", userIdStr);
       }
     });
 
-    // 2. Handle Instant Messages
+    // 2. Handle Instant Messages with delivery confirmation
     socket.on("send_message", (data) => {
       /* data: { recipientId, conversationId, messageId, content, senderId, senderName, senderAvatar, createdAt } */
       const targetSocketId = userSocketMap.get(data.recipientId.toString());
       if (targetSocketId) {
         io.to(targetSocketId).emit("receive_message", data);
+
+        // Send delivery confirmation back to the sender
+        socket.emit("message_delivered", {
+          messageId: data.messageId,
+          conversationId: data.conversationId,
+          deliveredAt: new Date().toISOString(),
+        });
       }
     });
 
     // 3. Handle Typing Indicators
     socket.on("typing", (data) => {
-      // data: { recipientId, conversationId, senderId }
+      // data: { recipientId, conversationId, senderId, senderName }
       const targetSocketId = userSocketMap.get(data.recipientId.toString());
       if (targetSocketId) {
         io.to(targetSocketId).emit("user_typing", data);
@@ -88,11 +104,13 @@ app.prepare().then(() => {
       }
     });
 
-    // Disconnect
+    // 5. Disconnect + Offline Presence
     socket.on("disconnect", () => {
       for (const [userId, socketId] of userSocketMap.entries()) {
         if (socketId === socket.id) {
           userSocketMap.delete(userId);
+          // Broadcast to ALL connected sockets that this user is now offline
+          io.emit("user_offline", userId);
           break;
         }
       }
