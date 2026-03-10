@@ -65,6 +65,20 @@ export default function MessagesPage() {
         fetchConversations();
     }, []);
 
+    // Restore chat from URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const routeChatId = params.get('chat');
+        if (routeChatId && conversations.length > 0 && !activeConversation) {
+            const convo = conversations.find(c => c.conversationId.toString() === routeChatId);
+            if (convo) {
+                // Ignore dependency rule here to avoid infinite render loop
+                // eslint-disable-next-line react-hooks/exhaustive-deps
+                openConversation(convo, false);
+            }
+        }
+    }, [conversations]);
+
     // Socket Listeners
     useEffect(() => {
         if (!socket) return;
@@ -91,6 +105,9 @@ export default function MessagesPage() {
                 // Emit mark_read since we are actively looking at this chat
                 // @ts-ignore
                 if (user?.id) {
+                    // Update the DB so it doesn't glow on refresh
+                    fetch(`/api/messages/${data.conversationId}`, { method: 'PUT' });
+
                     // @ts-ignore
                     socket.emit("mark_read", {
                         recipientId: activeConversation.userId,
@@ -139,10 +156,14 @@ export default function MessagesPage() {
         };
     }, [socket, activeConversation, (user as any)?.id]);
 
-    const openConversation = async (convo: Conversation) => {
+    const openConversation = async (convo: Conversation, updateUrl: boolean = true) => {
         setActiveConversation(convo);
         setMessagesLoading(true);
         setMessages([]); // Clear previous
+
+        if (updateUrl) {
+            window.history.pushState({}, '', '?chat=' + convo.conversationId);
+        }
 
         if (typeof convo.conversationId === 'string' && convo.conversationId.startsWith('new_')) {
             // Virtual conversation with a mutual follower, no messages yet
@@ -202,6 +223,7 @@ export default function MessagesPage() {
 
     const closeConversation = () => {
         setActiveConversation(null);
+        window.history.pushState({}, '', window.location.pathname);
         fetchConversations(); // refresh inbox to clear glowing states
     };
 

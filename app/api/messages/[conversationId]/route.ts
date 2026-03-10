@@ -104,3 +104,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ convers
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// PUT /api/messages/[conversationId] — Mark messages as read
+export async function PUT(req: Request, { params }: { params: Promise<{ conversationId: string }> }) {
+  try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { conversationId } = await params;
+
+    await query(
+      'UPDATE messages SET is_read = TRUE WHERE conversation_id = ? AND sender_id != ? AND is_read = FALSE',
+      [conversationId, userId]
+    );
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error('Mark Read Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
