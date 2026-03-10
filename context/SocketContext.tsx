@@ -23,7 +23,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Only connect if the user is authenticated and we have an ID
-    if (!user?.id) {
+    if (!(user as any)?.id) {
       if (socket) {
         socket.disconnect();
         setSocket(null);
@@ -40,7 +40,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     socketInstance.on("connect", () => {
       setIsConnected(true);
       // Register this socket specifically for the authenticated user
-      socketInstance.emit("register", user.id);
+      socketInstance.emit("register", (user as any).id);
     });
 
     socketInstance.on("disconnect", () => {
@@ -52,7 +52,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, [user?.id]);
+  }, [(user as any)?.id]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

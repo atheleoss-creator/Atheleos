@@ -134,7 +134,7 @@ export default function MessagesPage() {
             socket.off("user_stop_typing", handleUserStopTyping);
             socket.off("messages_read", handleMessagesRead);
         };
-    }, [socket, activeConversation, user?.id]);
+    }, [socket, activeConversation, (user as any)?.id]);
 
     const openConversation = async (convo: Conversation) => {
         setActiveConversation(convo);
