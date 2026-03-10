@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Grand_Hotel } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { SocketProvider } from "@/context/SocketContext";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -31,10 +32,12 @@ export default function RootLayout({
         className={`${outfit.variable} ${grandHotel.variable} antialiased font-sans bg-bg-body text-text-primary min-h-screen`}
       >
         <AuthProvider>
-          <div className="relative min-h-screen flex flex-col">
-            {/* Navbar is now handled by conditional logic or specific page groups */}
-            {children}
-          </div>
+          <SocketProvider>
+            <div className="relative min-h-screen flex flex-col">
+              {/* Navbar is now handled by conditional logic or specific page groups */}
+              {children}
+            </div>
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

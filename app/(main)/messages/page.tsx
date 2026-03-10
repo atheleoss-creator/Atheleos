@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import { formatDistanceToNow } from "date-fns";
 
 interface Conversation {
@@ -32,6 +33,7 @@ interface Message {
 export default function MessagesPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const { socket } = useSocket();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -41,22 +43,98 @@ export default function MessagesPage() {
     const [inputText, setInputText] = useState("");
     const [sending, setSending] = useState(false);
 
-    useEffect(() => {
-        async function fetchConversations() {
-            try {
-                const res = await fetch('/api/messages');
-                if (res.ok) {
-                    const data = await res.json();
-                    setConversations(data.conversations || []);
-                }
-            } catch (error) {
-                console.error('Failed to fetch conversations', error);
-            } finally {
-                setLoading(false);
+    // Socket state
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+
+    const fetchConversations = async () => {
+        try {
+            const res = await fetch('/api/messages');
+            if (res.ok) {
+                const data = await res.json();
+                setConversations(data.conversations || []);
             }
+        } catch (error) {
+            console.error('Failed to fetch conversations', error);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    useEffect(() => {
         fetchConversations();
     }, []);
+
+    // Socket Listeners
+    useEffect(() => {
+        if (!socket || !activeConversation) return;
+
+        const handleReceiveMessage = (data: any) => {
+                // @ts-ignore
+            if (data.conversationId === activeConversation.conversationId || data.senderId === activeConversation.userId) { // Mutual follower first message case
+                
+                // If it's a new conversation id that we didn't have, update our active chat id
+                if (typeof activeConversation.conversationId === 'string' && data.conversationId) {
+                    setActiveConversation(prev => prev ? { ...prev, conversationId: data.conversationId } : prev);
+                }
+
+                setMessages(prev => [...prev, {
+                    id: data.messageId,
+                    content: data.content,
+                    sender_id: data.senderId,
+                    is_read: true, // we are open, so it's read instantly
+                    created_at: data.createdAt,
+                    username: data.senderName,
+                    avatar_url: data.senderAvatar
+                }]);
+
+                // Emit mark_read since we are actively looking at this chat
+                // @ts-ignore
+                if (user?.id) {
+                    // @ts-ignore
+                    socket.emit("mark_read", {
+                        recipientId: activeConversation.userId,
+                        conversationId: data.conversationId,
+                        // @ts-ignore
+                        readerId: user.id
+                    });
+                }
+            } else {
+                // Not the active chat, just refresh the inbox counts
+                fetchConversations();
+            }
+        };
+
+        const handleUserTyping = (data: any) => {
+            if (data.senderId === activeConversation.userId) {
+                setOtherUserTyping(true);
+            }
+        };
+
+        const handleUserStopTyping = (data: any) => {
+            if (data.senderId === activeConversation.userId) {
+                setOtherUserTyping(false);
+            }
+        };
+
+        const handleMessagesRead = (data: any) => {
+            if (data.conversationId === activeConversation.conversationId || data.readerId === activeConversation.userId) {
+                setMessages(prev => prev.map(m => ({ ...m, is_read: true })));
+            }
+        };
+
+        socket.on("receive_message", handleReceiveMessage);
+        socket.on("user_typing", handleUserTyping);
+        socket.on("user_stop_typing", handleUserStopTyping);
+        socket.on("messages_read", handleMessagesRead);
+
+        return () => {
+            socket.off("receive_message", handleReceiveMessage);
+            socket.off("user_typing", handleUserTyping);
+            socket.off("user_stop_typing", handleUserStopTyping);
+            socket.off("messages_read", handleMessagesRead);
+        };
+    }, [socket, activeConversation, user?.id]);
 
     const openConversation = async (convo: Conversation) => {
         setActiveConversation(convo);
@@ -74,12 +152,54 @@ export default function MessagesPage() {
             if (res.ok) {
                 const data = await res.json();
                 setMessages(data.messages || []);
+                
+                // Notify socket that we've read these messages
+                // @ts-ignore
+                if (socket && user?.id) {
+                    socket.emit("mark_read", {
+                        recipientId: convo.userId,
+                        conversationId: convo.conversationId,
+                        // @ts-ignore
+                        readerId: user.id
+                    });
+                }
             }
         } catch (error) {
             console.error('Failed to fetch messages', error);
         } finally {
             setMessagesLoading(false);
         }
+    };
+
+    const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputText(e.target.value);
+        // @ts-ignore
+        if (!socket || !activeConversation || !user?.id) return;
+
+        socket.emit("typing", {
+            recipientId: activeConversation.userId,
+            conversationId: activeConversation.conversationId,
+            // @ts-ignore
+            senderId: user.id
+        });
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+
+        const newTimeout = setTimeout(() => {
+            socket.emit("stop_typing", {
+                recipientId: activeConversation.userId,
+                conversationId: activeConversation.conversationId,
+                // @ts-ignore
+                senderId: user.id
+            });
+        }, 1500);
+
+        setTypingTimeout(newTimeout);
+    };
+
+    const closeConversation = () => {
+        setActiveConversation(null);
+        fetchConversations(); // refresh inbox to clear glowing states
     };
 
     const handleSendMessage = async (e: React.FormEvent) => {
@@ -101,6 +221,8 @@ export default function MessagesPage() {
         };
         setMessages(prev => [...prev, tempMsg]);
 
+        let finalConversationId = activeConversation.conversationId;
+
         try {
             if (typeof activeConversation.conversationId === 'string' && activeConversation.conversationId.startsWith('new_')) {
                 // First message to a mutual follower: Create conversation
@@ -113,7 +235,8 @@ export default function MessagesPage() {
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success && data.conversationId) {
-                        setActiveConversation(prev => prev ? { ...prev, conversationId: data.conversationId } : prev);
+                        finalConversationId = data.conversationId;
+                        setActiveConversation(prev => prev ? { ...prev, conversationId: finalConversationId } : prev);
                     }
                 }
             } else {
@@ -124,6 +247,30 @@ export default function MessagesPage() {
                     body: JSON.stringify({ content: msgText })
                 });
             }
+
+            // Emit instant message over socket
+            if (socket && user) {
+                socket.emit("send_message", {
+                    recipientId: activeConversation.userId,
+                    conversationId: finalConversationId,
+                    messageId: tempMsg.id, // using temp id since we don't return db id currently
+                    content: msgText,
+                    // @ts-ignore - user.id exists in this app's AuthContext
+                    senderId: user.id || 0,
+                    senderName: user.username,
+                    // @ts-ignore
+                    senderAvatar: user.avatarUrl,
+                    createdAt: tempMsg.created_at
+                });
+
+                socket.emit("stop_typing", {
+                    recipientId: activeConversation.userId,
+                    conversationId: finalConversationId,
+                    // @ts-ignore
+                    senderId: user.id || 0
+                });
+            }
+
         } catch (error) {
             console.error('Failed to send message', error);
         } finally {
@@ -226,7 +373,7 @@ export default function MessagesPage() {
             {/* Chat Header */}
             <div className="bg-black/80 backdrop-blur-xl border-b border-white/[0.06] px-4 py-3 flex items-center justify-between shrink-0 shadow-lg">
                 <div className="flex items-center gap-3">
-                    <button onClick={() => setActiveConversation(null)} className="text-white hover:bg-white/5 p-1.5 -ml-1 rounded-xl transition-colors">
+                    <button onClick={closeConversation} className="text-white hover:bg-white/5 p-1.5 -ml-1 rounded-xl transition-colors">
                         <ArrowLeftIcon className="w-6 h-6" />
                     </button>
                     <div className="flex items-center gap-3">
@@ -256,8 +403,10 @@ export default function MessagesPage() {
                     </div>
                 )}
 
-                {messages.map((msg) => {
+                {messages.map((msg, index) => {
                     const isMe = msg.username === user?.username;
+                    const showSeen = isMe && msg.is_read && index === messages.length - 1;
+
                     return (
                         <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-slide-up`}>
                             <div className="flex flex-col max-w-[75%] gap-1">
@@ -270,13 +419,24 @@ export default function MessagesPage() {
                                 >
                                     {msg.content}
                                 </div>
-                                <span className={`text-[10px] text-text-tertiary ${isMe ? 'text-right' : 'text-left'}`}>
-                                    {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-                                </span>
+                                <div className={`flex items-center gap-2 text-[10px] text-text-tertiary ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                    <span>{formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}</span>
+                                    {showSeen && <span className="text-accent-primary font-bold">· Seen</span>}
+                                </div>
                             </div>
                         </div>
                     );
                 })}
+
+                {otherUserTyping && (
+                    <div className="flex w-full justify-start animate-fade-in">
+                        <div className="bg-white/[0.06] border border-white/[0.06] px-4 py-2.5 rounded-2xl rounded-tl-sm flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce"></span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Input */}
@@ -287,7 +447,7 @@ export default function MessagesPage() {
                             type="text"
                             placeholder="Message..."
                             value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
+                            onChange={handleTyping}
                             className="bg-transparent w-full text-[15px] focus:outline-none placeholder-text-tertiary"
                         />
                     </div>
