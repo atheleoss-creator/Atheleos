@@ -20,6 +20,8 @@ import {
     SparklesIcon,
     XMarkIcon,
     CameraIcon,
+    ChatBubbleOvalLeftEllipsisIcon,
+    PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
 import { formatDistanceToNow } from "date-fns";
 
@@ -56,6 +58,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     // Avatar upload
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [avatarUploading, setAvatarUploading] = useState(false);
+
+    // Messaging
+    const [showMessageModal, setShowMessageModal] = useState(false);
+    const [messageText, setMessageText] = useState("");
+    const [sendingMessage, setSendingMessage] = useState(false);
+    const router = require("next/navigation").useRouter();
 
     const isOwnProfile = currentUser?.username === username;
 
@@ -167,6 +175,32 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             console.error('Avatar upload failed:', err);
         } finally {
             setAvatarUploading(false);
+        }
+    };
+
+    // Message submit handler
+    const handleSendMessageSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!messageText.trim() || sendingMessage || !profile?.id) return;
+        setSendingMessage(true);
+        try {
+            const res = await fetch('/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId: profile.id, content: messageText })
+            });
+            if (!res.ok) throw new Error('Failed to send message');
+            const data = await res.json();
+            if (data.success) {
+                setShowMessageModal(false);
+                setMessageText("");
+                router.push("/messages");
+            }
+        } catch (err) {
+            console.error('Message send failed:', err);
+            alert("Failed to send message. Please try again.");
+        } finally {
+            setSendingMessage(false);
         }
     };
 
@@ -289,17 +323,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 Edit Profile
                             </Link>
                         ) : (
-                            <button
-                                onClick={toggleFollow}
-                                disabled={followLoading}
-                                className={`py-2.5 px-7 font-bold text-sm tracking-wider uppercase rounded-xl transition-all ${
-                                    isFollowing
-                                        ? 'bg-white/[0.06] border border-white/[0.08] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-                                        : 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white shadow-[0_0_15px_rgba(0,212,255,0.2)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)]'
-                                }`}
-                            >
-                                {isFollowing ? 'Following' : 'Follow'}
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={toggleFollow}
+                                    disabled={followLoading}
+                                    className={`py-2.5 px-7 font-bold text-sm tracking-wider uppercase rounded-xl transition-all ${
+                                        isFollowing
+                                            ? 'bg-white/[0.06] border border-white/[0.08] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                            : 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white shadow-[0_0_15px_rgba(0,212,255,0.2)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)]'
+                                    }`}
+                                >
+                                    {isFollowing ? 'Following' : 'Follow'}
+                                </button>
+                                
+                                {isFollowing && (
+                                    <button
+                                        onClick={() => setShowMessageModal(true)}
+                                        className="py-2.5 px-4 bg-white/[0.06] border border-white/[0.08] text-white font-bold rounded-xl hover:bg-white/[0.1] hover:border-accent-primary/50 transition-all flex items-center justify-center"
+                                        title="Send Message"
+                                    >
+                                        <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5 text-accent-primary" />
+                                    </button>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -629,6 +675,49 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Message Modal */}
+            {showMessageModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setShowMessageModal(false)}>
+                    <div className="bg-[#111] border border-white/[0.08] rounded-2xl w-full max-w-md mx-4 overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5 text-accent-primary" />
+                                Message @{profile.username}
+                            </h3>
+                            <button onClick={() => setShowMessageModal(false)} className="text-text-tertiary hover:text-white transition-colors">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSendMessageSubmit} className="p-5 flex flex-col gap-4">
+                            <textarea
+                                value={messageText}
+                                onChange={(e) => setMessageText(e.target.value)}
+                                placeholder={`Say hi to ${profile.full_name || profile.username}...`}
+                                rows={4}
+                                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 text-white placeholder-text-tertiary focus:outline-none focus:border-accent-primary/50 transition-colors resize-none"
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => setShowMessageModal(false)} className="px-5 py-2 rounded-xl text-sm font-bold text-text-tertiary hover:text-white transition-colors">
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={sendingMessage || !messageText.trim()}
+                                    className="px-6 py-2 bg-gradient-to-r from-accent-primary to-accent-secondary text-white rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(0,212,255,0.2)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)] disabled:opacity-50 flex items-center gap-2 transition-all"
+                                >
+                                    {sendingMessage ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>Send <PaperAirplaneIcon className="w-4 h-4" /></>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

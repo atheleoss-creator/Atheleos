@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 
 interface Conversation {
-    conversationId: number;
+    conversationId: number | string;
     updated_at: string;
     userId: number;
     username: string;
@@ -61,6 +61,14 @@ export default function MessagesPage() {
     const openConversation = async (convo: Conversation) => {
         setActiveConversation(convo);
         setMessagesLoading(true);
+        setMessages([]); // Clear previous
+
+        if (typeof convo.conversationId === 'string' && convo.conversationId.startsWith('new_')) {
+            // Virtual conversation with a mutual follower, no messages yet
+            setMessagesLoading(false);
+            return;
+        }
+
         try {
             const res = await fetch(`/api/messages/${convo.conversationId}`);
             if (res.ok) {
@@ -94,11 +102,28 @@ export default function MessagesPage() {
         setMessages(prev => [...prev, tempMsg]);
 
         try {
-            await fetch(`/api/messages/${activeConversation.conversationId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: msgText })
-            });
+            if (typeof activeConversation.conversationId === 'string' && activeConversation.conversationId.startsWith('new_')) {
+                // First message to a mutual follower: Create conversation
+                const res = await fetch(`/api/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetUserId: activeConversation.userId, content: msgText })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.conversationId) {
+                        setActiveConversation(prev => prev ? { ...prev, conversationId: data.conversationId } : prev);
+                    }
+                }
+            } else {
+                // Existing conversation
+                await fetch(`/api/messages/${activeConversation.conversationId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: msgText })
+                });
+            }
         } catch (error) {
             console.error('Failed to send message', error);
         } finally {

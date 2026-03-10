@@ -39,7 +39,41 @@ export async function GET() {
       ORDER BY c.updated_at DESC
     `, [userId, userId, userId]);
 
-    return NextResponse.json({ conversations }, { status: 200 });
+    // Find Mutual Followers without an existing conversation
+    const mutualFollowers: any = await query(`
+        SELECT 
+            u.id as userId, u.username, u.full_name, u.avatar_url
+        FROM follows f1
+        JOIN follows f2 ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+        JOIN users u ON f1.following_id = u.id
+        WHERE f1.follower_id = ?
+        AND u.id NOT IN (
+            SELECT cp2.user_id 
+            FROM conversation_participants cp1
+            JOIN conversation_participants cp2 ON cp1.conversation_id = cp2.conversation_id
+            WHERE cp1.user_id = ? AND cp2.user_id != ?
+        )
+    `, [userId, userId, userId]);
+    
+    // Format mutual followers as virtual conversations
+    const virtualConversations = mutualFollowers.map((follower: any) => ({
+      conversationId: 'new_' + follower.userId,
+      userId: follower.userId,
+      username: follower.username,
+      full_name: follower.full_name,
+      avatar_url: follower.avatar_url,
+      lastMessage: null,
+      lastMessageTime: null,
+      unreadCount: 0,
+      updated_at: new Date().toISOString() // for sorting purposes
+    }));
+
+    // Combine and sort by updated_at
+    const allConversations = [...conversations, ...virtualConversations].sort((a, b) => {
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    return NextResponse.json({ conversations: allConversations }, { status: 200 });
   } catch (error) {
     console.error('List Conversations Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
