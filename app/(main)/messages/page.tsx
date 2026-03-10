@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
-import { useSocket } from "@/context/SocketContext";
 import { format, isToday, isYesterday, formatDistanceToNow } from "date-fns";
 
 // ─── Types ───────────────────────────────────────
@@ -22,7 +21,7 @@ interface Conversation {
     unreadCount: number;
 }
 
-type MessageStatus = "sending" | "sent" | "delivered" | "seen";
+type MessageStatus = "sending" | "sent" | "seen";
 
 interface Message {
     id: number;
@@ -54,13 +53,8 @@ function linkify(text: string) {
     return parts.map((part, i) => {
         if (urlRegex.test(part)) {
             return (
-                <a
-                    key={i}
-                    href={part}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 hover:text-white/80 transition-colors break-all"
-                >
+                <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-white/80 transition-colors break-all">
                     {part}
                 </a>
             );
@@ -70,8 +64,7 @@ function linkify(text: string) {
 }
 
 function isSameDay(d1: string, d2: string) {
-    const a = new Date(d1);
-    const b = new Date(d2);
+    const a = new Date(d1), b = new Date(d2);
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
@@ -86,13 +79,6 @@ function StatusIcon({ status }: { status?: MessageStatus }) {
         );
     }
     if (status === "sent") {
-        return (
-            <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-text-tertiary inline-block">
-                <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        );
-    }
-    if (status === "delivered") {
         return (
             <svg viewBox="0 0 20 16" className="w-4 h-3.5 text-text-tertiary inline-block">
                 <path d="M2 8.5L5 11.5L10 5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -109,19 +95,12 @@ function StatusIcon({ status }: { status?: MessageStatus }) {
     );
 }
 
-// ─── Online Dot ──────────────────────────────────
-
-function OnlineDot({ size = "md" }: { size?: "sm" | "md" }) {
-    const s = size === "sm" ? "w-2.5 h-2.5 border" : "w-3 h-3 border-2";
-    return <span className={`${s} bg-accent-success border-black rounded-full online-pulse`} />;
-}
-
 // ─── Main Component ──────────────────────────────
 
 export default function MessagesPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const { socket, isUserOnline } = useSocket();
+    const myId = (user as any)?.id;
 
     // Inbox state
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -135,9 +114,11 @@ export default function MessagesPage() {
     const [inputText, setInputText] = useState("");
     const [sending, setSending] = useState(false);
 
-    // Socket state
+    // Polling state
     const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const lastPollTimestamp = useRef<string | null>(null);
     const [typingTimeout, setTypingTimeoutState] = useState<NodeJS.Timeout | null>(null);
+    const lastTypingEmit = useRef<number>(0);
 
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -145,7 +126,7 @@ export default function MessagesPage() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
 
-    // Active conversation ref for socket callbacks (avoid stale closures)
+    // Active conversation ref for polling callbacks
     const activeConvoRef = useRef<Conversation | null>(null);
     useEffect(() => { activeConvoRef.current = activeConversation; }, [activeConversation]);
 
@@ -166,6 +147,15 @@ export default function MessagesPage() {
     }, []);
 
     useEffect(() => { fetchConversations(); }, [fetchConversations]);
+
+    // ─── Inbox Polling (every 5 seconds) ───────────
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchConversations();
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [fetchConversations]);
 
     // ─── Restore chat from URL ─────────────────────
 
@@ -193,100 +183,74 @@ export default function MessagesPage() {
     }, []);
 
     useEffect(() => {
-        if (messages.length > 0) {
-            // Delay slightly for DOM to update
+        if (messages.length > 0 && !messagesLoading) {
             setTimeout(() => scrollToBottom(false), 50);
         }
-    }, [messagesLoading]); // Scroll on initial load
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messagesLoading]);
 
-    // ─── Socket Listeners ──────────────────────────
+    // ─── Chat Polling (every 2 seconds when chat is open) ──
 
     useEffect(() => {
-        if (!socket) return;
+        const ac = activeConvoRef.current;
+        if (!ac || typeof ac.conversationId === 'string') return; // skip virtual convos
 
-        const handleReceiveMessage = (data: any) => {
-            const ac = activeConvoRef.current;
-            if (ac && (data.conversationId === ac.conversationId || data.senderId === ac.userId)) {
-                // Update conversationId if this was a virtual conversation
-                if (typeof ac.conversationId === 'string' && data.conversationId) {
-                    setActiveConversation(prev => prev ? { ...prev, conversationId: data.conversationId } : prev);
+        const pollChat = async () => {
+            const currentAc = activeConvoRef.current;
+            if (!currentAc || typeof currentAc.conversationId === 'string') return;
+
+            try {
+                // Poll for new messages
+                const afterParam = lastPollTimestamp.current ? `?after=${encodeURIComponent(lastPollTimestamp.current)}` : '';
+                const res = await fetch(`/api/messages/${currentAc.conversationId}/poll${afterParam}`);
+                if (res.ok) {
+                    const data = await res.json();
+
+                    // Update poll timestamp
+                    if (data.timestamp) lastPollTimestamp.current = data.timestamp;
+
+                    // Add new messages (avoid duplicates)
+                    if (data.messages && data.messages.length > 0) {
+                        setMessages(prev => {
+                            const existingIds = new Set(prev.map(m => m.id));
+                            const newMsgs = data.messages.filter((m: any) => !existingIds.has(m.id));
+                            if (newMsgs.length === 0) return prev;
+                            const updated = [...prev, ...newMsgs.map((m: any) => ({
+                                ...m,
+                                status: m.is_read ? "seen" : "sent" as MessageStatus,
+                            }))];
+                            // Auto-scroll on new messages from others
+                            setTimeout(() => scrollToBottom(true), 50);
+                            return updated;
+                        });
+                    }
+
+                    // Update read receipts on our sent messages
+                    if (data.allRead) {
+                        setMessages(prev => prev.map(m =>
+                            m.sender_id === myId ? { ...m, is_read: true, status: "seen" as MessageStatus } : m
+                        ));
+                    }
                 }
 
-                setMessages(prev => [...prev, {
-                    id: data.messageId || Date.now(),
-                    content: data.content,
-                    sender_id: data.senderId,
-                    is_read: true,
-                    created_at: data.createdAt,
-                    username: data.senderName,
-                    avatar_url: data.senderAvatar,
-                    status: "seen",
-                }]);
-
-                // Auto-scroll on new message received
-                setTimeout(() => scrollToBottom(true), 50);
-
-                // Mark as read
-                if ((user as any)?.id) {
-                    fetch(`/api/messages/${data.conversationId}`, { method: 'PUT' });
-                    socket.emit("mark_read", {
-                        recipientId: ac.userId,
-                        conversationId: data.conversationId,
-                        readerId: (user as any).id,
-                    });
+                // Poll typing status
+                const typingRes = await fetch(`/api/messages/${currentAc.conversationId}/typing`);
+                if (typingRes.ok) {
+                    const typingData = await typingRes.json();
+                    setOtherUserTyping(typingData.isTyping);
                 }
-
-                // Also update inbox sidebar on desktop
-                fetchConversations();
-            } else {
-                // Not the active chat, refresh inbox
-                fetchConversations();
+            } catch (error) {
+                // Silent fail on poll errors
             }
         };
 
-        const handleUserTyping = (data: any) => {
-            const ac = activeConvoRef.current;
-            if (ac && data.senderId === ac.userId) {
-                setOtherUserTyping(true);
-            }
-        };
+        // Initial poll immediately
+        pollChat();
 
-        const handleUserStopTyping = (data: any) => {
-            const ac = activeConvoRef.current;
-            if (ac && data.senderId === ac.userId) {
-                setOtherUserTyping(false);
-            }
-        };
-
-        const handleMessagesRead = (data: any) => {
-            const ac = activeConvoRef.current;
-            if (ac && (data.conversationId === ac.conversationId || data.readerId === ac.userId)) {
-                setMessages(prev => prev.map(m => ({ ...m, is_read: true, status: "seen" as MessageStatus })));
-            } else {
-                fetchConversations();
-            }
-        };
-
-        const handleMessageDelivered = (data: any) => {
-            setMessages(prev => prev.map(m =>
-                m.id === data.messageId ? { ...m, status: "delivered" as MessageStatus } : m
-            ));
-        };
-
-        socket.on("receive_message", handleReceiveMessage);
-        socket.on("user_typing", handleUserTyping);
-        socket.on("user_stop_typing", handleUserStopTyping);
-        socket.on("messages_read", handleMessagesRead);
-        socket.on("message_delivered", handleMessageDelivered);
-
-        return () => {
-            socket.off("receive_message", handleReceiveMessage);
-            socket.off("user_typing", handleUserTyping);
-            socket.off("user_stop_typing", handleUserStopTyping);
-            socket.off("messages_read", handleMessagesRead);
-            socket.off("message_delivered", handleMessageDelivered);
-        };
-    }, [socket, (user as any)?.id, scrollToBottom, fetchConversations]);
+        // Then poll every 2 seconds
+        const interval = setInterval(pollChat, 2000);
+        return () => clearInterval(interval);
+    }, [activeConversation?.conversationId, myId, scrollToBottom]);
 
     // ─── Open Conversation ─────────────────────────
 
@@ -296,6 +260,7 @@ export default function MessagesPage() {
         setMessages([]);
         setOtherUserTyping(false);
         setInputText("");
+        lastPollTimestamp.current = null;
 
         if (updateUrl) {
             window.history.pushState({}, '', '?chat=' + convo.conversationId);
@@ -312,17 +277,11 @@ export default function MessagesPage() {
                 const data = await res.json();
                 const msgs = (data.messages || []).map((m: any) => ({
                     ...m,
-                    status: m.is_read ? "seen" : "delivered",
+                    status: m.is_read ? "seen" : "sent",
                 }));
                 setMessages(msgs);
-
-                if (socket && (user as any)?.id) {
-                    socket.emit("mark_read", {
-                        recipientId: convo.userId,
-                        conversationId: convo.conversationId,
-                        readerId: (user as any).id,
-                    });
-                }
+                // Set the poll timestamp to now so we only get NEW messages from here on
+                lastPollTimestamp.current = new Date().toISOString();
             }
         } catch (error) {
             console.error('Failed to fetch messages', error);
@@ -335,37 +294,34 @@ export default function MessagesPage() {
 
     const closeConversation = () => {
         setActiveConversation(null);
+        lastPollTimestamp.current = null;
         window.history.pushState({}, '', window.location.pathname);
         fetchConversations();
     };
 
     // ─── Typing ────────────────────────────────────
 
-    const emitTyping = useCallback(() => {
-        if (!socket || !activeConvoRef.current || !(user as any)?.id) return;
-        socket.emit("typing", {
-            recipientId: activeConvoRef.current.userId,
-            conversationId: activeConvoRef.current.conversationId,
-            senderId: (user as any).id,
-            senderName: user?.fullName || user?.username,
-        });
-    }, [socket, user]);
+    const emitTyping = useCallback(async () => {
+        const ac = activeConvoRef.current;
+        if (!ac || typeof ac.conversationId === 'string') return;
 
-    const emitStopTyping = useCallback(() => {
-        if (!socket || !activeConvoRef.current || !(user as any)?.id) return;
-        socket.emit("stop_typing", {
-            recipientId: activeConvoRef.current.userId,
-            conversationId: activeConvoRef.current.conversationId,
-            senderId: (user as any).id,
-        });
-    }, [socket, user]);
+        // Throttle: don't send more than once per second
+        const now = Date.now();
+        if (now - lastTypingEmit.current < 1000) return;
+        lastTypingEmit.current = now;
+
+        try {
+            await fetch(`/api/messages/${ac.conversationId}/typing`, { method: 'POST' });
+        } catch {
+            // silent fail
+        }
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInputText(e.target.value);
-        emitTyping();
-        if (typingTimeout) clearTimeout(typingTimeout);
-        const newTimeout = setTimeout(emitStopTyping, 1500);
-        setTypingTimeoutState(newTimeout);
+        if (e.target.value.trim()) {
+            emitTyping();
+        }
     };
 
     // Auto-resize textarea
@@ -386,15 +342,13 @@ export default function MessagesPage() {
         const tempId = Date.now();
         setSending(true);
         setInputText("");
-
-        // Reset textarea height
         if (textareaRef.current) textareaRef.current.style.height = "auto";
 
         // Optimistic message
         const tempMsg: Message = {
             id: tempId,
             content: msgText,
-            sender_id: (user as any)?.id || 0,
+            sender_id: myId || 0,
             is_read: false,
             created_at: new Date().toISOString(),
             username: user?.username || '',
@@ -410,6 +364,7 @@ export default function MessagesPage() {
             let apiMessageId: number | null = null;
 
             if (typeof activeConversation.conversationId === 'string' && activeConversation.conversationId.startsWith('new_')) {
+                // First message to mutual follower → create conversation
                 const res = await fetch(`/api/messages`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -421,6 +376,8 @@ export default function MessagesPage() {
                         finalConversationId = data.conversationId;
                         apiMessageId = data.messageId;
                         setActiveConversation(prev => prev ? { ...prev, conversationId: finalConversationId } : prev);
+                        // Set poll timestamp for the new conversation
+                        lastPollTimestamp.current = new Date().toISOString();
                     }
                 }
             } else {
@@ -440,27 +397,11 @@ export default function MessagesPage() {
                 m.id === tempId ? { ...m, id: apiMessageId || tempId, status: "sent" as MessageStatus } : m
             ));
 
-            // Emit via socket
-            if (socket && user) {
-                socket.emit("send_message", {
-                    recipientId: activeConversation.userId,
-                    conversationId: finalConversationId,
-                    messageId: apiMessageId || tempId,
-                    content: msgText,
-                    senderId: (user as any).id || 0,
-                    senderName: user.username,
-                    senderAvatar: user.avatarUrl,
-                    createdAt: tempMsg.created_at,
-                });
-                emitStopTyping();
-            }
-
-            // Update inbox
+            // Refresh inbox
             fetchConversations();
 
         } catch (error) {
             console.error('Failed to send message', error);
-            // Mark message as failed — just revert to sent
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: "sent" as MessageStatus } : m
             ));
@@ -560,7 +501,6 @@ export default function MessagesPage() {
 
                 {filteredConversations.map((chat) => {
                     const avatarUrl = chat.avatar_url || `https://ui-avatars.com/api/?name=${chat.username}&background=random`;
-                    const isOnline = isUserOnline(chat.userId);
                     const isActive = activeConversation?.conversationId === chat.conversationId;
 
                     return (
@@ -578,11 +518,6 @@ export default function MessagesPage() {
                                     <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/[0.06]">
                                         <Image src={avatarUrl} alt={chat.username} width={56} height={56} className="w-full h-full object-cover" unoptimized />
                                     </div>
-                                    {isOnline && (
-                                        <span className="absolute bottom-0 right-0">
-                                            <OnlineDot size="sm" />
-                                        </span>
-                                    )}
                                 </div>
                                 <div className="flex flex-col min-w-0 pr-4">
                                     <h3 className={`text-[15px] truncate ${chat.unreadCount > 0 ? 'font-bold text-white' : 'font-semibold text-text-secondary'}`}>
@@ -618,8 +553,6 @@ export default function MessagesPage() {
     const renderChat = () => {
         if (!activeConversation) return null;
         const otherAvatarUrl = activeConversation.avatar_url || `https://ui-avatars.com/api/?name=${activeConversation.username}&background=random`;
-        const isOnline = isUserOnline(activeConversation.userId);
-        const myId = (user as any)?.id;
 
         return (
             <div className="flex flex-col h-full">
@@ -637,19 +570,12 @@ export default function MessagesPage() {
                                 <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/10">
                                     <Image src={otherAvatarUrl} alt="Avatar" width={40} height={40} className="w-full h-full object-cover" unoptimized />
                                 </div>
-                                {isOnline && (
-                                    <span className="absolute -bottom-0.5 -right-0.5">
-                                        <OnlineDot size="sm" />
-                                    </span>
-                                )}
                             </div>
                             <div className="flex flex-col">
                                 <h2 className="text-[15px] font-bold leading-tight">{activeConversation.full_name || activeConversation.username}</h2>
                                 <span className="text-[11px] leading-tight">
                                     {otherUserTyping ? (
                                         <span className="text-accent-primary font-medium">typing...</span>
-                                    ) : isOnline ? (
-                                        <span className="text-accent-success">Online</span>
                                     ) : (
                                         <span className="text-text-tertiary">@{activeConversation.username}</span>
                                     )}
@@ -687,16 +613,11 @@ export default function MessagesPage() {
                         const prevMsg = index > 0 ? messages[index - 1] : null;
                         const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
 
-                        // Date separator
                         const showDateSeparator = !prevMsg || !isSameDay(msg.created_at, prevMsg.created_at);
-
-                        // Message grouping
                         const isSameSenderAsPrev = prevMsg && prevMsg.sender_id === msg.sender_id && isSameDay(msg.created_at, prevMsg.created_at);
                         const isSameSenderAsNext = nextMsg && nextMsg.sender_id === msg.sender_id && isSameDay(msg.created_at, nextMsg.created_at);
                         const isLastInGroup = !isSameSenderAsNext;
                         const isFirstInGroup = !isSameSenderAsPrev;
-
-                        // Show status only on last own message
                         const isLastOwnMsg = isMe && (!nextMsg || nextMsg.sender_id !== myId);
 
                         return (
@@ -709,10 +630,7 @@ export default function MessagesPage() {
                                     </div>
                                 )}
 
-                                <div
-                                    className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isFirstInGroup && !showDateSeparator ? 'mt-3' : 'mt-0.5'} message-in`}
-                                >
-                                    {/* Avatar for first message in group (other user) */}
+                                <div className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isFirstInGroup && !showDateSeparator ? 'mt-3' : 'mt-0.5'} message-in`}>
                                     {!isMe && (
                                         <div className="w-7 mr-2 shrink-0 self-end">
                                             {isLastInGroup ? (
@@ -739,7 +657,6 @@ export default function MessagesPage() {
                                             {linkify(msg.content)}
                                         </div>
 
-                                        {/* Time + Status */}
                                         {isLastInGroup && (
                                             <div className={`flex items-center gap-1.5 mt-1 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
                                                 <span className="text-[10px] text-text-tertiary">
@@ -823,14 +740,14 @@ export default function MessagesPage() {
 
     return (
         <div className="h-[calc(100vh-72px)] md:h-[calc(100vh-80px)] flex text-white animate-fade-in overflow-hidden -mx-4 -mt-4">
-            {/* Inbox sidebar — always visible on lg, hidden on sm when chat is active */}
+            {/* Inbox sidebar */}
             <div className={`w-full lg:w-[380px] lg:min-w-[380px] lg:border-r lg:border-white/[0.06] bg-bg-body flex-col shrink-0 ${
                 activeConversation ? 'hidden lg:flex' : 'flex'
             }`}>
                 {renderInbox()}
             </div>
 
-            {/* Chat panel — always visible on lg, shown on sm when chat is active */}
+            {/* Chat panel */}
             <div className={`flex-1 bg-bg-body flex-col min-w-0 relative ${
                 activeConversation ? 'flex' : 'hidden lg:flex'
             }`}>
