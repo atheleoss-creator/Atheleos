@@ -67,11 +67,11 @@ export default function MessagesPage() {
 
     // Socket Listeners
     useEffect(() => {
-        if (!socket || !activeConversation) return;
+        if (!socket) return;
 
         const handleReceiveMessage = (data: any) => {
                 // @ts-ignore
-            if (data.conversationId === activeConversation.conversationId || data.senderId === activeConversation.userId) { // Mutual follower first message case
+            if (activeConversation && (data.conversationId === activeConversation.conversationId || data.senderId === activeConversation.userId)) { // Mutual follower first message case
                 
                 // If it's a new conversation id that we didn't have, update our active chat id
                 if (typeof activeConversation.conversationId === 'string' && data.conversationId) {
@@ -100,26 +100,29 @@ export default function MessagesPage() {
                     });
                 }
             } else {
-                // Not the active chat, just refresh the inbox counts
+                // Not the active chat or in inbox view, refresh the inbox counts
                 fetchConversations();
             }
         };
 
         const handleUserTyping = (data: any) => {
-            if (data.senderId === activeConversation.userId) {
+            if (activeConversation && data.senderId === activeConversation.userId) {
                 setOtherUserTyping(true);
             }
         };
 
         const handleUserStopTyping = (data: any) => {
-            if (data.senderId === activeConversation.userId) {
+            if (activeConversation && data.senderId === activeConversation.userId) {
                 setOtherUserTyping(false);
             }
         };
 
         const handleMessagesRead = (data: any) => {
-            if (data.conversationId === activeConversation.conversationId || data.readerId === activeConversation.userId) {
+            if (activeConversation && (data.conversationId === activeConversation.conversationId || data.readerId === activeConversation.userId)) {
                 setMessages(prev => prev.map(m => ({ ...m, is_read: true })));
+            } else {
+                // Refresh inbox to clear glowing states
+                fetchConversations();
             }
         };
 
