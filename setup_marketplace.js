@@ -21,7 +21,7 @@ async function setupMarketplace() {
         `);
 
         // Insert some dummy data to make the UI look active
-        const [existingItems]: any = await pool.query('SELECT COUNT(*) as count FROM marketplace_items');
+        const [existingItems] = await pool.query('SELECT COUNT(*) as count FROM marketplace_items');
         
         if (existingItems[0].count === 0) {
             console.log('Inserting dummy data...');
