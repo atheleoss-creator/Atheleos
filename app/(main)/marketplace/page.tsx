@@ -108,10 +108,10 @@ export default function MarketplacePage() {
                         <button
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
-                            className={\`px-4 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all border \${activeCategory === cat
+                            className={`px-4 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all border ${activeCategory === cat
                                 ? "bg-text-primary text-bg-body border-text-primary"
                                 : "bg-bg-surface text-text-primary border-border-color hover:bg-white/5"
-                            }\`}
+                            }`}
                         >
                             {cat}
                         </button>
@@ -158,13 +158,13 @@ export default function MarketplacePage() {
                                     <Image src={coverImage} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                                     <div className="absolute top-2 right-2">
-                                        <span className={\`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border backdrop-blur-md \${getConditionStyle(item.condition_state)}\`}>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border backdrop-blur-md ${getConditionStyle(item.condition_state)}`}>
                                             {item.condition_state}
                                         </span>
                                     </div>
                                     <div className="absolute bottom-2 right-2">
                                         <span className="bg-black/70 backdrop-blur-md text-white px-2 py-1 rounded-lg text-sm font-bold tracking-wide border border-white/10 shadow-lg">
-                                            $\parseFloat(item.price as string).toFixed(2)\}
+                                            ${parseFloat(item.price as string).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
@@ -178,7 +178,7 @@ export default function MarketplacePage() {
                                         <div className="flex items-center gap-2">
                                             <div className="w-5 h-5 rounded-full overflow-hidden relative ring-1 ring-white/10 shadow-sm shrink-0">
                                                 <Image 
-                                                    src={item.avatar_url || \`https://ui-avatars.com/api/?name=\${item.username}&background=random\`} 
+                                                    src={item.avatar_url || `https://ui-avatars.com/api/?name=${item.username}&background=random`} 
                                                     alt={item.username} 
                                                     fill 
                                                     className="object-cover" 
