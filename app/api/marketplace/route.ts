@@ -3,8 +3,9 @@ import { query } from '@/lib/db';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
-function authenticateRequest(req: Request) {
-    const token = cookies().get('atheleos_token')?.value;
+async function authenticateRequest(req: Request) {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('atheleos_token')?.value;
     if (!token) return null;
     try {
         return jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const user = authenticateRequest(req);
+        const user = await authenticateRequest(req);
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
