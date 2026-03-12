@@ -39,12 +39,11 @@ export default function Navbar() {
                         <NavItem href="/explore" icon={<ExploreIcon className="w-[22px] h-[22px]" />} active={pathname === "/explore"} label="Explore" />
                         <NavItem href="/reels" icon={<ReelsIcon className="w-[22px] h-[22px]" />} active={pathname === "/reels"} label="Reels" />
                         <NavItem href="/events" icon={<CalendarIcon className="w-[22px] h-[22px]" />} active={pathname === "/events"} label="Events" />
-                        <NavItem href="/marketplace" icon={<ShopIcon className="w-[22px] h-[22px]" />} active={pathname === "/marketplace"} label="Shop" />
+                        <NavItem href="/create-post" icon={<CreateIcon className="w-[22px] h-[22px]" />} active={pathname === "/create-post"} label="Create" />
                     </div>
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-1">
-                        <NavItem href="/create-post" icon={<CreateIcon className="w-[22px] h-[22px]" />} active={pathname === "/create-post"} label="Create" />
                         <NavItem href="/messages" icon={<MessagesIcon className="w-[22px] h-[22px]" />} active={pathname === "/messages"} label="Messages" />
                         <NavItem href="/notifications" icon={<NotificationsIcon className="w-[22px] h-[22px]" />} active={pathname === "/notifications"} label="Alerts" />
 

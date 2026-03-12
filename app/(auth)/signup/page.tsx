@@ -35,7 +35,21 @@ export default function SignupPage() {
         setError("");
 
         try {
+            let publicKeyBase64 = "";
+            try {
+                const { generateKeyPair, exportKey, KeyStore } = await import("@/lib/crypto");
+                const keyPair = await generateKeyPair();
+                const privateKeyBase64 = await exportKey(keyPair.privateKey, 'pkcs8');
+                publicKeyBase64 = await exportKey(keyPair.publicKey, 'spki');
+                
+                await KeyStore.savePrivateKey(privateKeyBase64);
+            } catch (cryptoErr) {
+                console.error("Failed to generate E2EE keys", cryptoErr);
+                throw new Error("Your browser does not support the required encryption features.");
+            }
+
             const form = new FormData(e.currentTarget);
+            
             const submitData = {
                 username: form.get("username")?.toString() || formData.username,
                 fullName: form.get("fullName")?.toString() || formData.fullName,
@@ -52,6 +66,7 @@ export default function SignupPage() {
                 topSpeed: form.get("topSpeed")?.toString() || formData.topSpeed,
                 verticalLeap: form.get("verticalLeap")?.toString() || formData.verticalLeap,
                 recruitingStatus: form.get("recruitingStatus")?.toString() || formData.recruitingStatus,
+                publicKey: publicKeyBase64
             };
 
             const res = await fetch('/api/auth/signup', {

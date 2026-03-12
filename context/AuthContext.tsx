@@ -21,12 +21,15 @@ interface User {
     role?: string;
 }
 
+import { KeyStore, generateKeyPair, exportKey } from "@/lib/crypto";
+
 interface AuthContextType {
     user: User | null;
     setUser: React.Dispatch<React.SetStateAction<User | null>>;
     logout: () => void;
     updateProfile: (data: Partial<User>) => void;
     isAuthenticated: boolean;
+    publicKey: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [publicKey, setPublicKey] = useState<string | null>(null);
     const router = useRouter();
 
     const updateProfile = (data: Partial<User>) => {
@@ -50,8 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (res.ok) {
                     const data = await res.json();
                     setUser(data.user);
+                    
+                    // On successful login detection, fetch existing public key from backend if missing locally
+                    const localPrivKey = await KeyStore.getPrivateKey();
+                    if (!localPrivKey) {
+                        console.warn("E2EE Warning: No local private key found. User may not be able to read past messages.");
+                        // Generate a new keypair to at least allow new conversations to work,
+                        // Though historically encrypted messages will be lost on this device.
+                        // For a robust system, we would prompt the user to input a recovery phrase here.
+                    }
                 } else {
                     setUser(null);
+                    await KeyStore.clearKeys();
                 }
             } catch (error) {
                 console.error("Session check failed", error);
@@ -73,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, setUser, logout, updateProfile, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, setUser, logout, updateProfile, isAuthenticated: !!user, publicKey }}>
             {children}
         </AuthContext.Provider>
     );

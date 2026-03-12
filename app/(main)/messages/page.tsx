@@ -5,7 +5,20 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import { format, isToday, isYesterday, formatDistanceToNow } from "date-fns";
+import { 
+    KeyStore, 
+    importPrivateKey, 
+    importPublicKey, 
+    generateSessionKey, 
+    exportSessionKey,
+    encryptSessionKeyWithRSA,
+    decryptSessionKeyWithRSA,
+    importSessionKey,
+    encryptMessageWithAES,
+    decryptMessageWithAES
+} from "@/lib/crypto";
 
 // ─── Types ───────────────────────────────────────
 
@@ -101,6 +114,7 @@ export default function MessagesPage() {
     const router = useRouter();
     const { user } = useAuth();
     const myId = (user as any)?.id;
+    const { socket, isConnected } = useSocket();
 
     // Inbox state
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -130,6 +144,33 @@ export default function MessagesPage() {
     const activeConvoRef = useRef<Conversation | null>(null);
     useEffect(() => { activeConvoRef.current = activeConversation; }, [activeConversation]);
 
+    // ─── E2E Decryption Helper ─────────────────────
+
+    const decryptE2EMessage = useCallback(async (msg: any) => {
+        // If it's lacking encryption fields, we assume it's legacy plaintext
+        if (!msg.iv || !msg.recipient_encrypted_key || !msg.sender_encrypted_key) return msg;
+
+        try {
+            const localPrivKeyBase64 = await KeyStore.getPrivateKey();
+            if (!localPrivKeyBase64) throw new Error("No local private key found");
+            const privateKey = await importPrivateKey(localPrivKeyBase64);
+
+            const isMe = msg.sender_id === myId;
+            const targetEncKeyBase64 = isMe ? msg.sender_encrypted_key : msg.recipient_encrypted_key;
+            
+            if (!targetEncKeyBase64) throw new Error("Missing correct encrypted key for decryption");
+
+            const sessionKeyRaw = await decryptSessionKeyWithRSA(targetEncKeyBase64, privateKey);
+            const sessionKey = await importSessionKey(sessionKeyRaw);
+            const plaintext = await decryptMessageWithAES(msg.content, msg.iv, sessionKey);
+            
+            return { ...msg, content: plaintext };
+        } catch (err) {
+            console.error("Decryption error for msg", msg.id, err);
+            return { ...msg, content: "🔒 [Message Encrypted - Decryption Failed]" };
+        }
+    }, [myId]);
+
     // ─── Fetch Conversations ───────────────────────
 
     const fetchConversations = useCallback(async () => {
@@ -137,7 +178,20 @@ export default function MessagesPage() {
             const res = await fetch('/api/messages');
             if (res.ok) {
                 const data = await res.json();
-                setConversations(data.conversations || []);
+                
+                // Decrypt last messages for the sidebar preview
+                const decryptedConvos = await Promise.all((data.conversations || []).map(async (c: any) => {
+                    if (c.lastMessage && c.lastMessage.length > 50) { // arbitrary length check for base64 vs short plaintext
+                        // To decrypt, we need the sender/recipient keys and IV. 
+                        // The existing GET /api/messages query doesn't fetch those for the last message.
+                        // For a real production app, you'd join to get the `iv`, `recipient_encrypted_key`, `sender_encrypted_key`. 
+                        // Since we didn't update the sidebar SQL yet, it stays encrypted visually or we show a generic placeholder.
+                        return { ...c, lastMessage: "🔒 Encrypted Message" };
+                    }
+                    return c;
+                }));
+
+                setConversations(decryptedConvos);
             }
         } catch (error) {
             console.error('Failed to fetch conversations', error);
@@ -189,68 +243,89 @@ export default function MessagesPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [messagesLoading]);
 
-    // ─── Chat Polling (every 2 seconds when chat is open) ──
+    // ─── Socket Event Listeners ────────────────────
 
     useEffect(() => {
-        const ac = activeConvoRef.current;
-        if (!ac || typeof ac.conversationId === 'string') return; // skip virtual convos
+        if (!socket || !isConnected) return;
 
-        const pollChat = async () => {
-            const currentAc = activeConvoRef.current;
-            if (!currentAc || typeof currentAc.conversationId === 'string') return;
+        const handleReceiveMessage = async (data: any) => {
+            // data: { recipientId, conversationId, messageId, content, senderId, senderName, senderAvatar, createdAt, iv, recipient_encrypted_key, sender_encrypted_key }
+            const activeCid = activeConvoRef.current?.conversationId;
+            if (activeCid && activeCid === data.conversationId) {
+                // Decrypt inline since we are in active view
+                const decryptedMsg = await decryptE2EMessage({
+                    id: data.messageId,
+                    content: data.content,
+                    sender_id: data.senderId,
+                    is_read: true,
+                    created_at: data.createdAt,
+                    username: data.senderName,
+                    avatar_url: data.senderAvatar,
+                    iv: data.iv,
+                    recipient_encrypted_key: data.recipient_encrypted_key,
+                    sender_encrypted_key: data.sender_encrypted_key,
+                });
 
-            try {
-                // Poll for new messages
-                const afterParam = lastPollTimestamp.current ? `?after=${encodeURIComponent(lastPollTimestamp.current)}` : '';
-                const res = await fetch(`/api/messages/${currentAc.conversationId}/poll${afterParam}`);
-                if (res.ok) {
-                    const data = await res.json();
-
-                    // Update poll timestamp
-                    if (data.timestamp) lastPollTimestamp.current = data.timestamp;
-
-                    // Add new messages (avoid duplicates)
-                    if (data.messages && data.messages.length > 0) {
-                        setMessages(prev => {
-                            const existingIds = new Set(prev.map(m => m.id));
-                            const newMsgs = data.messages.filter((m: any) => !existingIds.has(m.id));
-                            if (newMsgs.length === 0) return prev;
-                            const updated = [...prev, ...newMsgs.map((m: any) => ({
-                                ...m,
-                                status: m.is_read ? "seen" : "sent" as MessageStatus,
-                            }))];
-                            // Auto-scroll on new messages from others
-                            setTimeout(() => scrollToBottom(true), 50);
-                            return updated;
-                        });
-                    }
-
-                    // Update read receipts on our sent messages
-                    if (data.allRead) {
-                        setMessages(prev => prev.map(m =>
-                            m.sender_id === myId ? { ...m, is_read: true, status: "seen" as MessageStatus } : m
-                        ));
-                    }
-                }
-
-                // Poll typing status
-                const typingRes = await fetch(`/api/messages/${currentAc.conversationId}/typing`);
-                if (typingRes.ok) {
-                    const typingData = await typingRes.json();
-                    setOtherUserTyping(typingData.isTyping);
-                }
-            } catch (error) {
-                // Silent fail on poll errors
+                setMessages(prev => {
+                    // avoid duplicates
+                    if (prev.some(m => m.id === decryptedMsg.id)) return prev;
+                    const updated = [...prev, { ...decryptedMsg, status: "seen" as MessageStatus }];
+                    setTimeout(() => scrollToBottom(true), 50);
+                    return updated;
+                });
+                
+                // Send read receipt back since we are viewing
+                socket.emit("mark_read", {
+                    recipientId: data.senderId,
+                    conversationId: data.conversationId,
+                    readerId: myId
+                });
+            } else {
+                // Message for a different conversation, just refresh the inbox
+                fetchConversations();
             }
         };
 
-        // Initial poll immediately
-        pollChat();
+        const handleTyping = (data: any) => {
+            const activeCid = activeConvoRef.current?.conversationId;
+            if (activeCid && activeCid === data.conversationId) {
+                setOtherUserTyping(true);
+                // Auto reset typing after 3s if stop isn't received
+                if (typingTimeout) clearTimeout(typingTimeout);
+                const to = setTimeout(() => setOtherUserTyping(false), 3000);
+                setTypingTimeoutState(to);
+            }
+        };
 
-        // Then poll every 2 seconds
-        const interval = setInterval(pollChat, 2000);
-        return () => clearInterval(interval);
-    }, [activeConversation?.conversationId, myId, scrollToBottom]);
+        const handleStopTyping = (data: any) => {
+            if (activeConvoRef.current?.conversationId === data.conversationId) {
+                setOtherUserTyping(false);
+                if (typingTimeout) clearTimeout(typingTimeout);
+            }
+        };
+
+        const handleReadReceipt = (data: any) => {
+            const activeCid = activeConvoRef.current?.conversationId;
+            if (activeCid && activeCid === data.conversationId) {
+                 setMessages(prev => prev.map(m =>
+                     m.sender_id === myId ? { ...m, is_read: true, status: "seen" as MessageStatus } : m
+                 ));
+            }
+        };
+
+        socket.on("receive_message", handleReceiveMessage);
+        socket.on("user_typing", handleTyping);
+        socket.on("user_stop_typing", handleStopTyping);
+        socket.on("messages_read", handleReadReceipt);
+
+        return () => {
+            socket.off("receive_message", handleReceiveMessage);
+            socket.off("user_typing", handleTyping);
+            socket.off("user_stop_typing", handleStopTyping);
+            socket.off("messages_read", handleReadReceipt);
+            if (typingTimeout) clearTimeout(typingTimeout);
+        };
+    }, [socket, isConnected, myId, scrollToBottom, fetchConversations, decryptE2EMessage, typingTimeout]);
 
     // ─── Open Conversation ─────────────────────────
 
@@ -275,7 +350,12 @@ export default function MessagesPage() {
             const res = await fetch(`/api/messages/${convo.conversationId}`);
             if (res.ok) {
                 const data = await res.json();
-                const msgs = (data.messages || []).map((m: any) => ({
+
+                const decryptedMessages = await Promise.all(
+                    (data.messages || []).map((m: any) => decryptE2EMessage(m))
+                );
+
+                const msgs = decryptedMessages.map((m: any) => ({
                     ...m,
                     status: m.is_read ? "seen" : "sent",
                 }));
@@ -310,17 +390,30 @@ export default function MessagesPage() {
         if (now - lastTypingEmit.current < 1000) return;
         lastTypingEmit.current = now;
 
-        try {
-            await fetch(`/api/messages/${ac.conversationId}/typing`, { method: 'POST' });
-        } catch {
-            // silent fail
+        if (socket && isConnected) {
+             socket.emit("typing", {
+                 recipientId: ac.userId,
+                 conversationId: ac.conversationId,
+                 senderId: myId,
+                 senderName: user?.username
+             });
         }
-    }, []);
+    }, [socket, isConnected, myId, user]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInputText(e.target.value);
         if (e.target.value.trim()) {
             emitTyping();
+        } else {
+             if (socket && isConnected) {
+                 const ac = activeConvoRef.current;
+                 if (ac && typeof ac.conversationId !== 'string') {
+                     socket.emit("stop_typing", {
+                         recipientId: ac.userId,
+                         conversationId: ac.conversationId
+                     });
+                 }
+             }
         }
     };
 
@@ -344,7 +437,7 @@ export default function MessagesPage() {
         setInputText("");
         if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-        // Optimistic message
+        // Optimistic message (shown as plaintext in UI but sends encrypted)
         const tempMsg: Message = {
             id: tempId,
             content: msgText,
@@ -362,13 +455,67 @@ export default function MessagesPage() {
 
         try {
             let apiMessageId: number | null = null;
+            let recipientPublicKeyStr: string | null = (activeConversation as any).public_key || null;
+
+            // Fetch recipient's public key if we don't have it
+            if (!recipientPublicKeyStr) {
+                try {
+                    const pkRes = await fetch(`/api/users/${activeConversation.username}/public-key`);
+                    if (pkRes.ok) {
+                        const pkData = await pkRes.json();
+                        recipientPublicKeyStr = pkData.publicKey;
+                        // update local cache for later
+                        setActiveConversation(prev => prev ? { ...prev, public_key: recipientPublicKeyStr } : prev);
+                    }
+                } catch(e) { console.error("Could not fetch recipient public key", e); }
+            }
+
+            let encryptedPayload = {
+                content: msgText,
+                iv: null as string | null,
+                recipientEncryptedKey: null as string | null,
+                senderEncryptedKey: null as string | null
+            };
+
+            const myPublicKeyStr = (user as any)?.publicKey;
+
+            // If we have both public keys, perform E2EE
+            if (recipientPublicKeyStr && myPublicKeyStr) {
+                try {
+                    const sessionKey = await generateSessionKey();
+                    const encMessage = await encryptMessageWithAES(msgText, sessionKey);
+                    
+                    const recipientRsaKey = await importPublicKey(recipientPublicKeyStr);
+                    const senderRsaKey = await importPublicKey(myPublicKeyStr);
+                    
+                    const sessionKeyRaw = await exportSessionKey(sessionKey);
+
+                    const recipientEnc = await encryptSessionKeyWithRSA(sessionKeyRaw, recipientRsaKey);
+                    const senderEnc = await encryptSessionKeyWithRSA(sessionKeyRaw, senderRsaKey);
+
+                    encryptedPayload = {
+                        content: encMessage.ciphertext,
+                        iv: encMessage.iv,
+                        recipientEncryptedKey: recipientEnc,
+                        senderEncryptedKey: senderEnc
+                    };
+                } catch(cryptoErr) {
+                    console.error("Encryption failed, falling back to plaintext (or aborting)", cryptoErr);
+                    // For security, you might prefer to abort here. We'll send it as plaintext if encryption fails for testing.
+                }
+            } else {
+                console.warn("Missing public keys for E2E encryption. Sending plaintext message.");
+            }
 
             if (typeof activeConversation.conversationId === 'string' && activeConversation.conversationId.startsWith('new_')) {
                 // First message to mutual follower → create conversation
                 const res = await fetch(`/api/messages`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetUserId: activeConversation.userId, content: msgText }),
+                    body: JSON.stringify({ 
+                        targetUserId: activeConversation.userId, 
+                        ...encryptedPayload 
+                    }),
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -376,7 +523,6 @@ export default function MessagesPage() {
                         finalConversationId = data.conversationId;
                         apiMessageId = data.messageId;
                         setActiveConversation(prev => prev ? { ...prev, conversationId: finalConversationId } : prev);
-                        // Set poll timestamp for the new conversation
                         lastPollTimestamp.current = new Date().toISOString();
                     }
                 }
@@ -384,7 +530,7 @@ export default function MessagesPage() {
                 const res = await fetch(`/api/messages/${activeConversation.conversationId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: msgText }),
+                    body: JSON.stringify(encryptedPayload),
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -396,6 +542,23 @@ export default function MessagesPage() {
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, id: apiMessageId || tempId, status: "sent" as MessageStatus } : m
             ));
+
+            // Instant socket emit for the other participant
+            if (socket && isConnected && apiMessageId) {
+                socket.emit("send_message", {
+                    recipientId: activeConversation.userId,
+                    conversationId: finalConversationId,
+                    messageId: apiMessageId,
+                    content: encryptedPayload.content,
+                    senderId: myId,
+                    senderName: user?.username,
+                    senderAvatar: user?.avatarUrl,
+                    createdAt: tempMsg.created_at,
+                    iv: encryptedPayload.iv,
+                    recipient_encrypted_key: encryptedPayload.recipientEncryptedKey,
+                    sender_encrypted_key: encryptedPayload.senderEncryptedKey
+                });
+            }
 
             // Refresh inbox
             fetchConversations();

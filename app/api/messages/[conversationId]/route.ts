@@ -37,7 +37,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ conversa
 
     // Fetch messages
     const messages: any = await query(`
-      SELECT m.id, m.content, m.sender_id, m.is_read, m.created_at,
+      SELECT m.id, m.content, m.sender_id, m.is_read, m.created_at, m.iv, m.recipient_encrypted_key, m.sender_encrypted_key,
              u.username, u.avatar_url
       FROM messages m
       JOIN users u ON m.sender_id = u.id
@@ -54,7 +54,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ conversa
 
     // Get the other participant's info
     const otherUser: any = await query(`
-      SELECT u.id, u.username, u.full_name, u.avatar_url
+      SELECT u.id, u.username, u.full_name, u.avatar_url, u.public_key
       FROM conversation_participants cp
       JOIN users u ON cp.user_id = u.id
       WHERE cp.conversation_id = ? AND cp.user_id != ?
@@ -77,7 +77,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ convers
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { conversationId } = await params;
-    const { content } = await req.json();
+    const { content, iv, recipientEncryptedKey, senderEncryptedKey } = await req.json();
 
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
@@ -93,8 +93,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ convers
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    const result: any = await query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)',
-      [conversationId, userId, content.trim()]);
+    const result: any = await query(
+      'INSERT INTO messages (conversation_id, sender_id, content, iv, recipient_encrypted_key, sender_encrypted_key) VALUES (?, ?, ?, ?, ?, ?)',
+      [conversationId, userId, content.trim(), iv || null, recipientEncryptedKey || null, senderEncryptedKey || null]
+    );
 
     await query('UPDATE conversations SET updated_at = NOW() WHERE id = ?', [conversationId]);
 

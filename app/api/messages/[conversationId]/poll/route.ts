@@ -42,7 +42,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ conversa
     let newMessages: any;
     if (after) {
       newMessages = await query(`
-        SELECT m.id, m.content, m.sender_id, m.is_read, m.created_at,
+        SELECT m.id, m.content, m.sender_id, m.is_read, m.created_at, m.iv, m.recipient_encrypted_key, m.sender_encrypted_key,
                u.username, u.avatar_url
         FROM messages m
         JOIN users u ON m.sender_id = u.id

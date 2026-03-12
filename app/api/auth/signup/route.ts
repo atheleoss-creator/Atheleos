@@ -5,7 +5,7 @@ import { sendOTP } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   try {
-    const { username, email, password, fullName, role, city, state, bio, sport, position, height, weight, topSpeed, verticalLeap, recruitingStatus } = await req.json();
+    const { username, email, password, fullName, role, city, state, bio, sport, position, height, weight, topSpeed, verticalLeap, recruitingStatus, publicKey } = await req.json();
 
     const missingFields = [];
     if (!username?.trim()) missingFields.push('username');
@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     if (!password?.trim()) missingFields.push('password');
     if (!fullName?.trim()) missingFields.push('fullName');
     if (!role?.trim()) missingFields.push('role');
+    if (!publicKey) missingFields.push('publicKey');
 
     if (missingFields.length > 0) {
       console.log('Signup failed due to missing fields:', missingFields, 'Received data:', { username, email, password: !!password, fullName, role });
@@ -39,15 +40,15 @@ export async function POST(req: Request) {
       INSERT INTO users (
         username, email, password_hash, full_name, role, city, state, bio, 
         sport, position, height, weight, top_speed, vertical_leap, recruiting_status, 
-        is_verified, otp_code, otp_expires_at
+        is_verified, otp_code, otp_expires_at, public_key
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)
     `;
     
     await query(insertSql, [
         username, email, passwordHash, fullName, role, city || null, state || null, bio || null, 
         sport || null, position || null, height || null, weight || null, topSpeed || null, verticalLeap || null, recruitingStatus || 'Not Looking',
-        otp, expiresAt
+        otp, expiresAt, publicKey
     ]);
 
     // 4. Send the OTP Email via Hostinger credentials -> TEMPORARILY DISABLED

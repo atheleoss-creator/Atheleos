@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     const userId = await getUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { targetUserId, content } = await req.json();
+    const { targetUserId, content, iv, recipientEncryptedKey, senderEncryptedKey } = await req.json();
 
     if (!targetUserId || !content?.trim()) {
       return NextResponse.json({ error: 'targetUserId and content are required' }, { status: 400 });
@@ -115,8 +115,10 @@ export async function POST(req: Request) {
     }
 
     // Insert message
-    const msgResult: any = await query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)',
-      [conversationId, userId, content.trim()]);
+    const msgResult: any = await query(
+        'INSERT INTO messages (conversation_id, sender_id, content, iv, recipient_encrypted_key, sender_encrypted_key) VALUES (?, ?, ?, ?, ?, ?)',
+        [conversationId, userId, content.trim(), iv || null, recipientEncryptedKey || null, senderEncryptedKey || null]
+    );
 
     // Update conversation timestamp
     await query('UPDATE conversations SET updated_at = NOW() WHERE id = ?', [conversationId]);
