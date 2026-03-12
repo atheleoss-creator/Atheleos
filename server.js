@@ -4,8 +4,8 @@ const next = require("next");
 const path = require("path");
 const { Server } = require("socket.io");
 
-// ALWAYS force production mode on Hostinger to prevent Turbopack 404s
-const dev = false;
+// Use production mode if specifically requested or if deployed (assuming Hostinger sets NODE_ENV)
+const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
