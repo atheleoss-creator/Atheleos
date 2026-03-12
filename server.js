@@ -20,21 +20,6 @@ app.prepare().then(() => {
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
-      const { pathname } = parsedUrl;
-
-      // Ensure Next.js doesn't try to handle Socket.io requests and throw a 404
-      if (pathname.startsWith("/socket.io")) {
-        return;
-      }
-
-      // EXPLICIT ROUTING: Hostinger custom servers often drop Next.js static chunk routing
-      // If the request is for an internal Next.js file, strictly pass it directly to Next
-      if (pathname.startsWith("/_next") || pathname.startsWith("/public")) {
-        await handle(req, res, parsedUrl);
-        return;
-      }
-
-      // Normal application routing
       await handle(req, res, parsedUrl);
     } catch (err) {
       console.error("Error occurred handling", req.url, err);
