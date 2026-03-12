@@ -8,7 +8,6 @@ import {
     HomeIcon,
     ExploreIcon,
     CreateIcon,
-    ShopIcon,
     ReelsIcon,
     MessagesIcon,
     NotificationsIcon,
