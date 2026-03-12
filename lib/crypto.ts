@@ -65,7 +65,7 @@ export async function exportSessionKey(key: CryptoKey): Promise<Uint8Array> {
 export async function importSessionKey(rawKey: Uint8Array): Promise<CryptoKey> {
     return await window.crypto.subtle.importKey(
         "raw",
-        rawKey,
+        rawKey as any,
         "AES-GCM",
         true,
         ["encrypt", "decrypt"]
@@ -77,7 +77,7 @@ export async function encryptSessionKeyWithRSA(sessionKeyRaw: Uint8Array, public
     const encrypted = await window.crypto.subtle.encrypt(
         { name: "RSA-OAEP" },
         publicKey,
-        sessionKeyRaw
+        sessionKeyRaw as any
     );
     return Buffer.from(encrypted).toString('base64');
 }
@@ -87,7 +87,7 @@ export async function decryptSessionKeyWithRSA(encryptedSessionKeyBase64: string
     const decrypted = await window.crypto.subtle.decrypt(
         { name: "RSA-OAEP" },
         privateKey,
-        encryptedBytes
+        encryptedBytes as any
     );
     return new Uint8Array(decrypted);
 }
@@ -98,9 +98,9 @@ export async function encryptMessageWithAES(message: string, sessionKey: CryptoK
     const encodedMessage = new TextEncoder().encode(message);
 
     const ciphertextBuf = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
+        { name: "AES-GCM", iv: iv as any },
         sessionKey,
-        encodedMessage
+        encodedMessage as any
     );
 
     return {
@@ -114,9 +114,9 @@ export async function decryptMessageWithAES(ciphertextBase64: string, ivBase64: 
     const iv = Buffer.from(ivBase64, 'base64');
 
     const decrypted = await window.crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: new Uint8Array(iv) },
+        { name: "AES-GCM", iv: new Uint8Array(iv) as any },
         sessionKey,
-        new Uint8Array(ciphertext)
+        new Uint8Array(ciphertext) as any
     );
 
     return new TextDecoder().decode(decrypted);
