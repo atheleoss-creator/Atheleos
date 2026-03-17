@@ -1,0 +1,7 @@
+# Rewrite rules to proxy all requests to the running Node.js server
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Replace 3000 with your actual application port if different in Hostinger
+  RewriteRule ^(.*)$ http://127.0.0.0:3000/$1 [P,L]
+</IfModule>
