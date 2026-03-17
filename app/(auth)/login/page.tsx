@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 
 export default function LoginPage() {
-    const [email, setEmail] = useState("");
+    const [identifier, setIdentifier] = useState("");
+    const [actualEmail, setActualEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -19,11 +20,15 @@ export default function LoginPage() {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ identifier, password })
             });
             const data = await res.json();
             if (!res.ok) {
-                if (data.requiresVerification) { setRequiresOtp(true); return; }
+                if (data.requiresVerification) { 
+                    setRequiresOtp(true); 
+                    if (data.email) setActualEmail(data.email);
+                    return; 
+                }
                 throw new Error(data.error || 'Login failed');
             }
             window.location.href = '/';
@@ -42,7 +47,7 @@ export default function LoginPage() {
             const res = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp })
+                body: JSON.stringify({ email: actualEmail || identifier, otp })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Invalid OTP');
@@ -97,7 +102,7 @@ export default function LoginPage() {
                     <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-7 shadow-2xl shadow-black/50">
                         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                             <div>
-                                <label className="block text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-2">Email Address</label>
+                                <label className="block text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-2">Email or Username</label>
                                 <div className="relative">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -106,11 +111,11 @@ export default function LoginPage() {
                                         </svg>
                                     </div>
                                     <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        type="text"
+                                        value={identifier}
+                                        onChange={(e) => setIdentifier(e.target.value)}
                                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/30 transition-all placeholder:text-text-tertiary"
-                                        placeholder="you@example.com"
+                                        placeholder="you@example.com or username"
                                         required
                                     />
                                 </div>
@@ -184,7 +189,7 @@ export default function LoginPage() {
                             </div>
                             <h2 className="text-xl font-bold text-white mb-1">Check your email</h2>
                             <p className="text-text-secondary text-sm">
-                                We sent a 6-digit code to <span className="text-white font-semibold">{email}</span>
+                                We sent a 6-digit code to <span className="text-white font-semibold">{actualEmail || identifier}</span>
                             </p>
                         </div>
                         <form onSubmit={handleOtpSubmit} className="flex flex-col gap-4">

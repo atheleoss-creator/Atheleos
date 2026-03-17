@@ -7,14 +7,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const { identifier, password } = await req.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    if (!identifier || !password) {
+      return NextResponse.json({ error: 'Email/Username and password are required' }, { status: 400 });
     }
 
-    // 1. Fetch user by email
-    const users: any = await query('SELECT * FROM users WHERE email = ?', [email]);
+    // 1. Fetch user by email or username
+    const users: any = await query('SELECT * FROM users WHERE email = ? OR username = ?', [identifier, identifier]);
     
     if (users.length === 0) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
