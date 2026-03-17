@@ -3,6 +3,7 @@ const { parse } = require("url");
 const next = require("next");
 const path = require("path");
 const { Server } = require("socket.io");
+const fs = require("fs");
 
 // Use production mode if specifically requested or if deployed (assuming Hostinger sets NODE_ENV)
 const dev = process.env.NODE_ENV !== "production";
@@ -20,6 +21,33 @@ app.prepare().then(() => {
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
+
+      // Explicitly serve dynamically uploaded files
+      if (parsedUrl.pathname && parsedUrl.pathname.startsWith('/uploads/')) {
+        const filePath = path.join(__dirname, 'public', parsedUrl.pathname);
+        try {
+          const stat = await fs.promises.stat(filePath);
+          if (stat.isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const mimeTypes = {
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.png': 'image/png',
+              '.gif': 'image/gif',
+              '.webp': 'image/webp',
+              '.mp4': 'video/mp4',
+              '.webm': 'video/webm'
+            };
+            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            const stream = fs.createReadStream(filePath);
+            return stream.pipe(res);
+          }
+        } catch (e) {
+          // File not found, fall back to Next.js handler
+        }
+      }
+
       await handle(req, res, parsedUrl);
     } catch (err) {
       console.error("Error occurred handling", req.url, err);
