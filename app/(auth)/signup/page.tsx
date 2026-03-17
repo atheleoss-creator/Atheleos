@@ -48,24 +48,8 @@ export default function SignupPage() {
                 throw new Error("Your browser does not support the required encryption features.");
             }
 
-            const form = new FormData(e.currentTarget);
-            
             const submitData = {
-                username: form.get("username")?.toString() || formData.username,
-                fullName: form.get("fullName")?.toString() || formData.fullName,
-                email: form.get("email")?.toString() || formData.email,
-                password: form.get("password")?.toString() || formData.password,
-                role: form.get("role")?.toString() || formData.role,
-                city: form.get("city")?.toString() || formData.city,
-                state: form.get("state")?.toString() || formData.state,
-                bio: form.get("bio")?.toString() || formData.bio,
-                sport: form.get("sport")?.toString() || formData.sport,
-                position: form.get("position")?.toString() || formData.position,
-                height: form.get("height")?.toString() || formData.height,
-                weight: form.get("weight")?.toString() || formData.weight,
-                topSpeed: form.get("topSpeed")?.toString() || formData.topSpeed,
-                verticalLeap: form.get("verticalLeap")?.toString() || formData.verticalLeap,
-                recruitingStatus: form.get("recruitingStatus")?.toString() || formData.recruitingStatus,
+                ...formData,
                 publicKey: publicKeyBase64
             };
 
