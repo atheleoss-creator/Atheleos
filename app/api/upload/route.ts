@@ -46,7 +46,11 @@ export async function POST(req: Request) {
         }
 
         // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+        // If a persistent STORAGE_PATH is defined (e.g. for deployments), use it. Otherwise, use public/uploads
+        const uploadsDir = process.env.STORAGE_PATH
+            ? path.join(process.env.STORAGE_PATH, 'uploads')
+            : path.join(process.cwd(), 'public', 'uploads');
+            
         if (!existsSync(uploadsDir)) {
             await mkdir(uploadsDir, { recursive: true });
         }

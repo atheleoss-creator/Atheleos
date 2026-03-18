@@ -24,7 +24,14 @@ app.prepare().then(() => {
 
       // Explicitly serve dynamically uploaded files
       if (parsedUrl.pathname && parsedUrl.pathname.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, 'public', parsedUrl.pathname);
+        // Resolve from STORAGE_PATH first if set, otherwise from local public folder
+        const baseDir = process.env.STORAGE_PATH
+            ? path.join(process.env.STORAGE_PATH, 'uploads')
+            : path.join(__dirname, 'public', 'uploads');
+            
+        // Extract just the filename (e.g., /uploads/image.jpg -> image.jpg)
+        const filename = parsedUrl.pathname.replace('/uploads/', '');
+        const filePath = path.join(baseDir, filename);
         try {
           const stat = await fs.promises.stat(filePath);
           if (stat.isFile()) {
