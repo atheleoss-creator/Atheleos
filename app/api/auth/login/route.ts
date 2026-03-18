@@ -60,7 +60,8 @@ export async function POST(req: Request) {
             avatarUrl: user.avatar_url,
             isVerified: !!user.is_verified,
             verificationLevel: user.verification_level,
-            role: user.role
+            role: user.role,
+            publicKey: user.public_key
         }
     }, { status: 200 });
 

@@ -19,7 +19,7 @@ export async function GET() {
     try {
       const decoded: any = jwt.verify(token, JWT_SECRET);
       
-      const users: any = await query('SELECT id, username, full_name, avatar_url, cover_url, bio, is_verified, verification_level, role FROM users WHERE id = ?', [decoded.id]);
+      const users: any = await query('SELECT id, username, full_name, avatar_url, cover_url, bio, is_verified, verification_level, role, public_key FROM users WHERE id = ?', [decoded.id]);
       
       if (users.length === 0) {
         return NextResponse.json({ user: null }, { status: 404 });
@@ -33,6 +33,7 @@ export async function GET() {
       user.avatarUrl = user.avatar_url;
       user.coverUrl = user.cover_url;
       user.verificationLevel = user.verification_level;
+      user.publicKey = user.public_key;
 
       return NextResponse.json({ user }, { status: 200 });
       

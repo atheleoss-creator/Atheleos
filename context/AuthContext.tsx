@@ -19,6 +19,7 @@ interface User {
     highlights?: any[];
     matches?: any[];
     role?: string;
+    publicKey?: string;
 }
 
 import { KeyStore, generateKeyPair, exportKey } from "@/lib/crypto";
