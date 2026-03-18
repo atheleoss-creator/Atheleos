@@ -251,7 +251,7 @@ export default function MessagesPage() {
         const handleReceiveMessage = async (data: any) => {
             // data: { recipientId, conversationId, messageId, content, senderId, senderName, senderAvatar, createdAt, iv, recipient_encrypted_key, sender_encrypted_key }
             const activeCid = activeConvoRef.current?.conversationId;
-            if (activeCid && activeCid === data.conversationId) {
+            if (activeCid && activeCid == data.conversationId) {
                 // Decrypt inline since we are in active view
                 const decryptedMsg = await decryptE2EMessage({
                     id: data.messageId,
@@ -288,7 +288,7 @@ export default function MessagesPage() {
 
         const handleTyping = (data: any) => {
             const activeCid = activeConvoRef.current?.conversationId;
-            if (activeCid && activeCid === data.conversationId) {
+            if (activeCid && activeCid == data.conversationId) {
                 setOtherUserTyping(true);
                 // Auto reset typing after 3s if stop isn't received
                 if (typingTimeout) clearTimeout(typingTimeout);
@@ -298,7 +298,7 @@ export default function MessagesPage() {
         };
 
         const handleStopTyping = (data: any) => {
-            if (activeConvoRef.current?.conversationId === data.conversationId) {
+            if (activeConvoRef.current?.conversationId == data.conversationId) {
                 setOtherUserTyping(false);
                 if (typingTimeout) clearTimeout(typingTimeout);
             }
@@ -306,7 +306,7 @@ export default function MessagesPage() {
 
         const handleReadReceipt = (data: any) => {
             const activeCid = activeConvoRef.current?.conversationId;
-            if (activeCid && activeCid === data.conversationId) {
+            if (activeCid && activeCid == data.conversationId) {
                  setMessages(prev => prev.map(m =>
                      m.sender_id === myId ? { ...m, is_read: true, status: "seen" as MessageStatus } : m
                  ));

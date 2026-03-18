@@ -5,6 +5,27 @@
  * using the browser's native Web Crypto API.
  */
 
+// --- Base64 Helpers ---
+function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
+function base64ToArrayBuffer(base64: string): Uint8Array {
+    const binary_string = window.atob(base64);
+    const len = binary_string.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes;
+}
+
 // 1. Generate RSA-OAEP Key Pair for Asymmetric Encryption
 export async function generateKeyPair(): Promise<CryptoKeyPair> {
     return await window.crypto.subtle.generateKey(
@@ -22,15 +43,15 @@ export async function generateKeyPair(): Promise<CryptoKeyPair> {
 // 2. Export Key to Base64 String (for storage/transmission)
 export async function exportKey(key: CryptoKey, type: 'spki' | 'pkcs8'): Promise<string> {
     const exported = await window.crypto.subtle.exportKey(type, key);
-    return Buffer.from(exported).toString('base64');
+    return arrayBufferToBase64(exported);
 }
 
 // 3. Import Key from Base64 String
 export async function importPublicKey(base64Key: string): Promise<CryptoKey> {
-    const binaryDer = Buffer.from(base64Key, 'base64');
+    const binaryDer = base64ToArrayBuffer(base64Key);
     return await window.crypto.subtle.importKey(
         "spki",
-        binaryDer,
+        binaryDer as any,
         { name: "RSA-OAEP", hash: "SHA-256" },
         true,
         ["encrypt"]
@@ -38,10 +59,10 @@ export async function importPublicKey(base64Key: string): Promise<CryptoKey> {
 }
 
 export async function importPrivateKey(base64Key: string): Promise<CryptoKey> {
-    const binaryDer = Buffer.from(base64Key, 'base64');
+    const binaryDer = base64ToArrayBuffer(base64Key);
     return await window.crypto.subtle.importKey(
         "pkcs8",
-        binaryDer,
+        binaryDer as any,
         { name: "RSA-OAEP", hash: "SHA-256" },
         true,
         ["decrypt"]
@@ -79,11 +100,11 @@ export async function encryptSessionKeyWithRSA(sessionKeyRaw: Uint8Array, public
         publicKey,
         sessionKeyRaw as any
     );
-    return Buffer.from(encrypted).toString('base64');
+    return arrayBufferToBase64(encrypted);
 }
 
 export async function decryptSessionKeyWithRSA(encryptedSessionKeyBase64: string, privateKey: CryptoKey): Promise<Uint8Array> {
-    const encryptedBytes = Buffer.from(encryptedSessionKeyBase64, 'base64');
+    const encryptedBytes = base64ToArrayBuffer(encryptedSessionKeyBase64);
     const decrypted = await window.crypto.subtle.decrypt(
         { name: "RSA-OAEP" },
         privateKey,
@@ -104,14 +125,14 @@ export async function encryptMessageWithAES(message: string, sessionKey: CryptoK
     );
 
     return {
-        ciphertext: Buffer.from(ciphertextBuf).toString('base64'),
-        iv: Buffer.from(iv).toString('base64'),
+        ciphertext: arrayBufferToBase64(ciphertextBuf),
+        iv: arrayBufferToBase64(iv),
     };
 }
 
 export async function decryptMessageWithAES(ciphertextBase64: string, ivBase64: string, sessionKey: CryptoKey): Promise<string> {
-    const ciphertext = Buffer.from(ciphertextBase64, 'base64');
-    const iv = Buffer.from(ivBase64, 'base64');
+    const ciphertext = base64ToArrayBuffer(ciphertextBase64);
+    const iv = base64ToArrayBuffer(ivBase64);
 
     const decrypted = await window.crypto.subtle.decrypt(
         { name: "AES-GCM", iv: new Uint8Array(iv) as any },

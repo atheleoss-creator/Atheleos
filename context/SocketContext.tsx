@@ -45,7 +45,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     // Connect to the socket server (runs on the same origin)
     const socketInstance = io(window.location.origin, {
       path: "/socket.io/",
-      transports: ["websocket"], // Force WebSocket to bypass Hostinger's stateless long-polling issues
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
