@@ -24,15 +24,33 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await req.json();
-        const { data } = body;
+        let dataToUpload: string;
+        const contentType = req.headers.get('content-type') || '';
 
-        if (!data) {
+        if (contentType.includes('application/json')) {
+            const body = await req.json();
+            dataToUpload = body.data;
+        } else if (contentType.includes('multipart/form-data')) {
+            const formData = await req.formData();
+            const file = formData.get('file') as File | null;
+            if (!file) {
+                return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+            }
+            
+            // Convert file to base64 for Cloudinary Node SDK
+            const bytes = await file.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+            dataToUpload = `data:${file.type};base64,${buffer.toString('base64')}`;
+        } else {
+            return NextResponse.json({ error: 'Unsupported content type. Send JSON or FormData.' }, { status: 400 });
+        }
+
+        if (!dataToUpload) {
             return NextResponse.json({ error: 'No data provided' }, { status: 400 });
         }
 
-        const uploadResponse = await cloudinary.uploader.upload(data, {
-            upload_preset: 'ml_default', // Ensure you have an unsigned preset in Cloudinary settings, or remove this if not using presets
+        const uploadResponse = await cloudinary.uploader.upload(dataToUpload, {
+            // upload_preset: 'ml_default', // Removed to avoid errors if preset is not configured. Signed uploads don't need it.
             resource_type: 'auto',       // This allows both images and videos
             folder: `atheleos/user_${userId}`, // Keep things organized
         });
