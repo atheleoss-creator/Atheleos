@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { existsSync } from 'fs';
+import cloudinary from '@/lib/cloudinary';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
@@ -26,51 +24,23 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const formData = await req.formData();
-        const file = formData.get('file') as File | null;
+        const body = await req.json();
+        const { data } = body;
 
-        if (!file) {
-            return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+        if (!data) {
+            return NextResponse.json({ error: 'No data provided' }, { status: 400 });
         }
 
-        // Validate file size (5MB max)
-        const MAX_SIZE = 5 * 1024 * 1024;
-        if (file.size > MAX_SIZE) {
-            return NextResponse.json({ error: 'File too large. Max 5MB.' }, { status: 400 });
-        }
+        const uploadResponse = await cloudinary.uploader.upload(data, {
+            upload_preset: 'ml_default', // Ensure you have an unsigned preset in Cloudinary settings, or remove this if not using presets
+            resource_type: 'auto',       // This allows both images and videos
+            folder: `atheleos/user_${userId}`, // Keep things organized
+        });
 
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime'];
-        if (!allowedTypes.includes(file.type)) {
-            return NextResponse.json({ error: 'Invalid file type. Allowed: JPEG, PNG, GIF, WebP, MP4' }, { status: 400 });
-        }
-
-        // Create uploads directory if it doesn't exist
-        // If a persistent STORAGE_PATH is defined (e.g. for deployments), use it. Otherwise, use public/uploads
-        const uploadsDir = process.env.STORAGE_PATH
-            ? path.join(process.env.STORAGE_PATH, 'uploads')
-            : path.join(process.cwd(), 'public', 'uploads');
-            
-        if (!existsSync(uploadsDir)) {
-            await mkdir(uploadsDir, { recursive: true });
-        }
-
-        // Generate unique filename
-        const ext = file.name.split('.').pop() || 'jpg';
-        const uniqueName = `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const filePath = path.join(uploadsDir, uniqueName);
-
-        // Write file to disk
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        await writeFile(filePath, buffer);
-
-        const publicUrl = `/uploads/${uniqueName}`;
-
-        return NextResponse.json({ success: true, url: publicUrl }, { status: 200 });
-
-    } catch (error) {
-        console.error('Upload Error:', error);
-        return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+        // Return the secure URL
+        return NextResponse.json({ success: true, url: uploadResponse.secure_url }, { status: 200 });
+    } catch (error: any) {
+        console.error('Cloudinary upload error:', error);
+        return NextResponse.json({ error: error.message || 'Something went wrong with the upload' }, { status: 500 });
     }
 }
