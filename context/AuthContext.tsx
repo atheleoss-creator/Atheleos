@@ -73,6 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 body: JSON.stringify({ publicKey: publicKeyBase64 })
                             });
                             console.log("E2EE Info: New keypair generated and public key uploaded successfully.");
+                            
+                            // Immediately update local state so the rest of the app (e.g. chat sender) uses the new public key!
+                            setUser((prev: any) => prev ? { ...prev, publicKey: publicKeyBase64 } : prev);
                         } catch (err) {
                             console.error("Failed to regenerate keys:", err);
                         }

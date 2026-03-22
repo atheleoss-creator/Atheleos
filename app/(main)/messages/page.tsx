@@ -251,7 +251,19 @@ export default function MessagesPage() {
         const handleReceiveMessage = async (data: any) => {
             // data: { recipientId, conversationId, messageId, content, senderId, senderName, senderAvatar, createdAt, iv, recipient_encrypted_key, sender_encrypted_key }
             const activeCid = activeConvoRef.current?.conversationId;
-            if (activeCid && activeCid == data.conversationId) {
+            
+            // Check if we are currently looking at this conversation!
+            // It matches if activeCid is the database ID, OR if we are looking at a brand new chat for this specific sender.
+            const isMatch = (activeCid && activeCid == data.conversationId) || 
+                            (activeCid === `new_${data.senderId}`);
+
+            if (isMatch) {
+                // If it was a new conversation, upgrade it to the real DB ID automatically so future typing works smoothly.
+                if (activeCid === `new_${data.senderId}`) {
+                    setActiveConversation(prev => prev ? { ...prev, conversationId: data.conversationId } : prev);
+                    window.history.pushState({}, '', '?chat=' + data.conversationId);
+                }
+
                 // Decrypt inline since we are in active view
                 const decryptedMsg = await decryptE2EMessage({
                     id: data.messageId,
@@ -288,7 +300,11 @@ export default function MessagesPage() {
 
         const handleTyping = (data: any) => {
             const activeCid = activeConvoRef.current?.conversationId;
-            if (activeCid && activeCid == data.conversationId) {
+            // The sender might be typing in a brand new chat (data.conversationId = "new_" + myId)
+            const isMatch = (activeCid && activeCid == data.conversationId) || 
+                            (data.conversationId === `new_${myId}` && activeCid === `new_${data.senderId}`);
+                            
+            if (isMatch) {
                 setOtherUserTyping(true);
                 // Auto reset typing after 3s if stop isn't received
                 if (typingTimeout) clearTimeout(typingTimeout);
@@ -298,7 +314,11 @@ export default function MessagesPage() {
         };
 
         const handleStopTyping = (data: any) => {
-            if (activeConvoRef.current?.conversationId == data.conversationId) {
+            const activeCid = activeConvoRef.current?.conversationId;
+            const isMatch = (activeCid && activeCid == data.conversationId) || 
+                            (data.conversationId === `new_${myId}` && activeCid === `new_${data.senderId}`);
+                            
+            if (isMatch) {
                 setOtherUserTyping(false);
                 if (typingTimeout) clearTimeout(typingTimeout);
             }
