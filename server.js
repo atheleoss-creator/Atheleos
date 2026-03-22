@@ -129,7 +129,42 @@ app.prepare().then(() => {
       }
     });
 
-    // 5. Disconnect + Offline Presence
+    // 5. Handle WebRTC Calls
+    socket.on("call_user", (data) => {
+      const targetSocketId = userSocketMap.get(data.userToCall.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("incoming_call", {
+          signal: data.signalData,
+          from: data.from,
+          name: data.name,
+          avatar: data.avatar,
+          isVideo: data.isVideo,
+        });
+      }
+    });
+
+    socket.on("answer_call", (data) => {
+      const targetSocketId = userSocketMap.get(data.to.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("call_accepted", data.signal);
+      }
+    });
+
+    socket.on("end_call", (data) => {
+      const targetSocketId = userSocketMap.get(data.to.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("call_ended");
+      }
+    });
+
+    socket.on("ice_candidate", (data) => {
+      const targetSocketId = userSocketMap.get(data.to.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("ice_candidate", data.candidate);
+      }
+    });
+
+    // 6. Disconnect + Offline Presence
     socket.on("disconnect", () => {
       for (const [userId, socketId] of userSocketMap.entries()) {
         if (socketId === socket.id) {

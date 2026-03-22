@@ -7,18 +7,6 @@ import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { format, isToday, isYesterday, formatDistanceToNow } from "date-fns";
-import { 
-    KeyStore, 
-    importPrivateKey, 
-    importPublicKey, 
-    generateSessionKey, 
-    exportSessionKey,
-    encryptSessionKeyWithRSA,
-    decryptSessionKeyWithRSA,
-    importSessionKey,
-    encryptMessageWithAES,
-    decryptMessageWithAES
-} from "@/lib/crypto";
 
 // ─── Types ───────────────────────────────────────
 
@@ -144,32 +132,28 @@ export default function MessagesPage() {
     const activeConvoRef = useRef<Conversation | null>(null);
     useEffect(() => { activeConvoRef.current = activeConversation; }, [activeConversation]);
 
+    // ─── Call State ────────────────────────────────
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+    const [receivingCall, setReceivingCall] = useState(false);
+    const [caller, setCaller] = useState("");
+    const [callerName, setCallerName] = useState("");
+    const [callerAvatar, setCallerAvatar] = useState("");
+    const [callerSignal, setCallerSignal] = useState<any>();
+    const [callAccepted, setCallAccepted] = useState(false);
+    const [callEnded, setCallEnded] = useState(false);
+    const [isCalling, setIsCalling] = useState(false);
+    const [isVideoCall, setIsVideoCall] = useState(false);
+
+    const myVideo = useRef<HTMLVideoElement>(null);
+    const userVideo = useRef<HTMLVideoElement>(null);
+    const connectionRef = useRef<RTCPeerConnection | null>(null);
+
     // ─── E2E Decryption Helper ─────────────────────
 
     const decryptE2EMessage = useCallback(async (msg: any) => {
-        // If it's lacking encryption fields, we assume it's legacy plaintext
-        if (!msg.iv || !msg.recipient_encrypted_key || !msg.sender_encrypted_key) return msg;
-
-        try {
-            const localPrivKeyBase64 = await KeyStore.getPrivateKey();
-            if (!localPrivKeyBase64) throw new Error("No local private key found");
-            const privateKey = await importPrivateKey(localPrivKeyBase64);
-
-            const isMe = msg.sender_id === myId;
-            const targetEncKeyBase64 = isMe ? msg.sender_encrypted_key : msg.recipient_encrypted_key;
-            
-            if (!targetEncKeyBase64) throw new Error("Missing correct encrypted key for decryption");
-
-            const sessionKeyRaw = await decryptSessionKeyWithRSA(targetEncKeyBase64, privateKey);
-            const sessionKey = await importSessionKey(sessionKeyRaw);
-            const plaintext = await decryptMessageWithAES(msg.content, msg.iv, sessionKey);
-            
-            return { ...msg, content: plaintext };
-        } catch (err) {
-            console.error("Decryption error for msg", msg.id, err);
-            return { ...msg, content: "🔒 [Message Encrypted - Decryption Failed]" };
-        }
-    }, [myId]);
+        return msg;
+    }, []);
 
     // ─── Fetch Conversations ───────────────────────
 
@@ -181,13 +165,6 @@ export default function MessagesPage() {
                 
                 // Decrypt last messages for the sidebar preview
                 const decryptedConvos = await Promise.all((data.conversations || []).map(async (c: any) => {
-                    if (c.lastMessage && c.lastMessage.length > 50) { // arbitrary length check for base64 vs short plaintext
-                        // To decrypt, we need the sender/recipient keys and IV. 
-                        // The existing GET /api/messages query doesn't fetch those for the last message.
-                        // For a real production app, you'd join to get the `iv`, `recipient_encrypted_key`, `sender_encrypted_key`. 
-                        // Since we didn't update the sidebar SQL yet, it stays encrypted visually or we show a generic placeholder.
-                        return { ...c, lastMessage: "🔒 Encrypted Message" };
-                    }
                     return c;
                 }));
 
@@ -333,19 +310,61 @@ export default function MessagesPage() {
             }
         };
 
+        const handleIncomingCall = (data: any) => {
+            setReceivingCall(true);
+            setCaller(data.from);
+            setCallerName(data.name);
+            setCallerAvatar(data.avatar);
+            setCallerSignal(data.signal);
+            setIsVideoCall(data.isVideo);
+        };
+
+        const handleCallAccepted = async (signal: any) => {
+            setCallAccepted(true);
+            if (connectionRef.current) {
+                await connectionRef.current.setRemoteDescription(new RTCSessionDescription(signal));
+            }
+        };
+
+        const handleIceCandidate = async (candidate: any) => {
+            if (connectionRef.current) {
+                await connectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+        };
+
+        const handleCallEnded = () => {
+            setCallEnded(true);
+            connectionRef.current?.close();
+            connectionRef.current = null;
+            localStream?.getTracks().forEach(track => track.stop());
+            setLocalStream(null);
+            setRemoteStream(null);
+            setIsCalling(false);
+            setReceivingCall(false);
+            setCallAccepted(false);
+        };
+
         socket.on("receive_message", handleReceiveMessage);
         socket.on("user_typing", handleTyping);
         socket.on("user_stop_typing", handleStopTyping);
         socket.on("messages_read", handleReadReceipt);
+        socket.on("incoming_call", handleIncomingCall);
+        socket.on("call_accepted", handleCallAccepted);
+        socket.on("ice_candidate", handleIceCandidate);
+        socket.on("call_ended", handleCallEnded);
 
         return () => {
             socket.off("receive_message", handleReceiveMessage);
             socket.off("user_typing", handleTyping);
             socket.off("user_stop_typing", handleStopTyping);
             socket.off("messages_read", handleReadReceipt);
+            socket.off("incoming_call", handleIncomingCall);
+            socket.off("call_accepted", handleCallAccepted);
+            socket.off("ice_candidate", handleIceCandidate);
+            socket.off("call_ended", handleCallEnded);
             if (typingTimeout) clearTimeout(typingTimeout);
         };
-    }, [socket, isConnected, myId, scrollToBottom, fetchConversations, decryptE2EMessage, typingTimeout]);
+    }, [socket, isConnected, myId, scrollToBottom, fetchConversations, decryptE2EMessage, typingTimeout, localStream]);
 
     // ─── Open Conversation ─────────────────────────
 
@@ -475,57 +494,9 @@ export default function MessagesPage() {
 
         try {
             let apiMessageId: number | null = null;
-            let recipientPublicKeyStr: string | null = (activeConversation as any).public_key || null;
-
-            // Fetch recipient's public key if we don't have it
-            if (!recipientPublicKeyStr) {
-                try {
-                    const pkRes = await fetch(`/api/users/${activeConversation.username}/public-key`);
-                    if (pkRes.ok) {
-                        const pkData = await pkRes.json();
-                        recipientPublicKeyStr = pkData.publicKey;
-                        // update local cache for later
-                        setActiveConversation(prev => prev ? { ...prev, public_key: recipientPublicKeyStr } : prev);
-                    }
-                } catch(e) { console.error("Could not fetch recipient public key", e); }
-            }
-
             let encryptedPayload = {
-                content: msgText,
-                iv: null as string | null,
-                recipientEncryptedKey: null as string | null,
-                senderEncryptedKey: null as string | null
+                content: msgText
             };
-
-            const myPublicKeyStr = (user as any)?.publicKey;
-
-            // If we have both public keys, perform E2EE
-            if (recipientPublicKeyStr && myPublicKeyStr) {
-                try {
-                    const sessionKey = await generateSessionKey();
-                    const encMessage = await encryptMessageWithAES(msgText, sessionKey);
-                    
-                    const recipientRsaKey = await importPublicKey(recipientPublicKeyStr);
-                    const senderRsaKey = await importPublicKey(myPublicKeyStr);
-                    
-                    const sessionKeyRaw = await exportSessionKey(sessionKey);
-
-                    const recipientEnc = await encryptSessionKeyWithRSA(sessionKeyRaw, recipientRsaKey);
-                    const senderEnc = await encryptSessionKeyWithRSA(sessionKeyRaw, senderRsaKey);
-
-                    encryptedPayload = {
-                        content: encMessage.ciphertext,
-                        iv: encMessage.iv,
-                        recipientEncryptedKey: recipientEnc,
-                        senderEncryptedKey: senderEnc
-                    };
-                } catch(cryptoErr) {
-                    console.error("Encryption failed, falling back to plaintext (or aborting)", cryptoErr);
-                    // For security, you might prefer to abort here. We'll send it as plaintext if encryption fails for testing.
-                }
-            } else {
-                console.warn("Missing public keys for E2E encryption. Sending plaintext message.");
-            }
 
             if (typeof activeConversation.conversationId === 'string' && activeConversation.conversationId.startsWith('new_')) {
                 // First message to mutual follower → create conversation
@@ -573,10 +544,7 @@ export default function MessagesPage() {
                     senderId: myId,
                     senderName: user?.username,
                     senderAvatar: user?.avatarUrl,
-                    createdAt: tempMsg.created_at,
-                    iv: encryptedPayload.iv,
-                    recipient_encrypted_key: encryptedPayload.recipientEncryptedKey,
-                    sender_encrypted_key: encryptedPayload.senderEncryptedKey
+                    createdAt: tempMsg.created_at
                 });
             }
 
@@ -599,6 +567,189 @@ export default function MessagesPage() {
             e.preventDefault();
             handleSendMessage();
         }
+    };
+
+    // ─── WebRTC Functions ──────────────────────────
+
+    const startCall = async (video: boolean) => {
+        setIsCalling(true);
+        setIsVideoCall(video);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
+            setLocalStream(stream);
+            
+            // wait for state update to mount video ref
+            setTimeout(() => {
+                if (myVideo.current) myVideo.current.srcObject = stream;
+            }, 100);
+
+            const peer = new RTCPeerConnection({
+                iceServers: [ { urls: "stun:stun.l.google.com:19302" } ]
+            });
+            connectionRef.current = peer;
+
+            stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+
+            peer.ontrack = (event) => {
+                setRemoteStream(event.streams[0]);
+                setTimeout(() => {
+                    if (userVideo.current) userVideo.current.srcObject = event.streams[0];
+                }, 100);
+            };
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate && socket && isConnected) {
+                    socket.emit("ice_candidate", {
+                        to: activeConversation?.userId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            const offer = await peer.createOffer();
+            await peer.setLocalDescription(offer);
+
+            socket?.emit("call_user", {
+                userToCall: activeConversation?.userId,
+                signalData: offer,
+                from: myId,
+                name: user?.username,
+                avatar: user?.avatarUrl,
+                isVideo: video
+            });
+        } catch (err) {
+            console.error("Failed to access media devices", err);
+            setIsCalling(false);
+        }
+    };
+
+    const answerCall = async () => {
+        setCallAccepted(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
+            setLocalStream(stream);
+            
+            setTimeout(() => {
+                if (myVideo.current) myVideo.current.srcObject = stream;
+            }, 100);
+
+            const peer = new RTCPeerConnection({
+                iceServers: [ { urls: "stun:stun.l.google.com:19302" } ]
+            });
+            connectionRef.current = peer;
+
+            stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+
+            peer.ontrack = (event) => {
+                setRemoteStream(event.streams[0]);
+                setTimeout(() => {
+                    if (userVideo.current) userVideo.current.srcObject = event.streams[0];
+                }, 100);
+            };
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate && socket && isConnected) {
+                    socket.emit("ice_candidate", {
+                        to: caller,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            await peer.setRemoteDescription(new RTCSessionDescription(callerSignal));
+            const answer = await peer.createAnswer();
+            await peer.setLocalDescription(answer);
+
+            socket?.emit("answer_call", { signal: answer, to: caller });
+        } catch (err) {
+            console.error("Failed to answer call", err);
+        }
+    };
+
+    const leaveCall = () => {
+        setCallEnded(true);
+        connectionRef.current?.close();
+        connectionRef.current = null;
+        localStream?.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+        setRemoteStream(null);
+        setIsCalling(false);
+        setReceivingCall(false);
+        setCallAccepted(false);
+        if (socket && isConnected) {
+             const target = isCalling ? activeConversation?.userId : caller;
+             socket.emit("end_call", { to: target });
+        }
+    };
+
+    // ─── Render: WebRTC Call UI ────────────────────
+
+    const renderCallOverlay = () => {
+        if (!isCalling && !callAccepted && !receivingCall) return null;
+        
+        // Incoming Call Modal
+        if (receivingCall && !callAccepted) {
+             return (
+                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in">
+                     <div className="bg-[#1a1a1a] p-8 rounded-3xl border border-white/10 text-center max-w-sm w-full shadow-2xl">
+                         <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 ring-4 ring-white/10">
+                              <Image src={callerAvatar || `https://ui-avatars.com/api/?name=${callerName}&background=random`} alt={callerName} width={96} height={96} />
+                         </div>
+                         <h2 className="text-2xl font-bold text-white mb-2">{callerName}</h2>
+                         <p className="text-text-tertiary mb-8">Incoming {isVideoCall ? "Video" : "Audio"} Call...</p>
+                         <div className="flex items-center justify-center gap-6">
+                             <button onClick={() => { setReceivingCall(false); socket?.emit("end_call", { to: caller }); }} className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18v1.5h3v-1.5m-3 0h3" /></svg>
+                             </button>
+                             <button onClick={answerCall} className="w-16 h-16 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
+                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" /></svg>
+                             </button>
+                         </div>
+                     </div>
+                 </div>
+             );
+        }
+
+        // Active Call Modal
+        return (
+            <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-fade-in relative overflow-hidden">
+                {/* Background Remote Video or placeholder */}
+                {callAccepted && remoteStream ? (
+                    isVideoCall ? (
+                       <video playsInline ref={userVideo} autoPlay className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                       <div className="absolute inset-0 flex items-center justify-center bg-gray-900 w-full h-full">
+                           <div className="w-40 h-40 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 text-white"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18v1.5h3v-1.5m-3 0h3" /></svg>
+                           </div>
+                           <audio playsInline ref={userVideo} autoPlay />
+                       </div>
+                    )
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 w-full h-full">
+                         <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-6 ring-4 ring-white/10 animate-pulse">
+                              <Image src={activeConversation?.avatar_url || `https://ui-avatars.com/api/?name=${activeConversation?.username}&background=random`} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" />
+                         </div>
+                         <h2 className="text-3xl font-bold text-white mb-2">{activeConversation?.full_name || activeConversation?.username}</h2>
+                         <p className="text-text-tertiary text-lg">Calling...</p>
+                    </div>
+                )}
+
+                {/* Local Video Picture-in-Picture */}
+                {localStream && isVideoCall && (
+                    <div className="absolute top-6 right-6 w-32 h-44 sm:w-48 sm:h-64 bg-black rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl z-10">
+                        <video playsInline muted ref={myVideo} autoPlay className="w-full h-full object-cover" />
+                    </div>
+                )}
+
+                {/* Controls */}
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+                    <button onClick={leaveCall} className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18v1.5h3v-1.5m-3 0h3" /></svg>
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     // ─── Filtered Conversations ────────────────────
@@ -766,6 +917,28 @@ export default function MessagesPage() {
                             </div>
                         </div>
                     </div>
+                    
+                    {/* Call Buttons */}
+                    <div className="flex items-center gap-1.5 sm:gap-3">
+                        <button 
+                            onClick={() => startCall(false)}
+                            className="p-2 sm:px-3 sm:py-2 bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/[0.06] rounded-xl text-text-secondary hover:text-white transition-all flex items-center gap-2"
+                            title="Audio Call"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.864-1.068l-3.21-.642a2.25 2.25 0 0 0-2.127.842l-1.257 1.595A15.93 15.93 0 0 1 4.296 8.355l1.595-1.257a2.25 2.25 0 0 0 .842-2.127L6.09 1.761a2.25 2.25 0 0 0-2.127-.842L2.25 6.75Z" />
+                            </svg>
+                        </button>
+                        <button 
+                            onClick={() => startCall(true)}
+                            className="p-2 sm:px-3 sm:py-2 bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/[0.06] rounded-xl text-text-secondary hover:text-white transition-all flex items-center gap-2"
+                            title="Video Call"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Messages */}
@@ -923,6 +1096,7 @@ export default function MessagesPage() {
 
     return (
         <div className="h-[calc(100vh-72px)] md:h-[calc(100vh-80px)] flex text-white animate-fade-in overflow-hidden -mx-4 -mt-4">
+            {renderCallOverlay()}
             {/* Inbox sidebar */}
             <div className={`w-full lg:w-[380px] lg:min-w-[380px] lg:border-r lg:border-white/[0.06] bg-bg-body flex-col shrink-0 ${
                 activeConversation ? 'hidden lg:flex' : 'flex'
