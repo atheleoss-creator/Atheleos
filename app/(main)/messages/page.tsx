@@ -144,6 +144,8 @@ export default function MessagesPage() {
     const [callEnded, setCallEnded] = useState(false);
     const [isCalling, setIsCalling] = useState(false);
     const [isVideoCall, setIsVideoCall] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [isVideoOff, setIsVideoOff] = useState(false);
 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
@@ -342,6 +344,8 @@ export default function MessagesPage() {
             setIsCalling(false);
             setReceivingCall(false);
             setCallAccepted(false);
+            setIsMuted(false);
+            setIsVideoOff(false);
         };
 
         socket.on("receive_message", handleReceiveMessage);
@@ -676,9 +680,25 @@ export default function MessagesPage() {
         setIsCalling(false);
         setReceivingCall(false);
         setCallAccepted(false);
+        setIsMuted(false);
+        setIsVideoOff(false);
         if (socket && isConnected) {
              const target = isCalling ? activeConversation?.userId : caller;
              socket.emit("end_call", { to: target });
+        }
+    };
+
+    const toggleMute = () => {
+        if (localStream) {
+            localStream.getAudioTracks().forEach(track => (track.enabled = !track.enabled));
+            setIsMuted(!isMuted);
+        }
+    };
+
+    const toggleVideo = () => {
+        if (localStream) {
+            localStream.getVideoTracks().forEach(track => (track.enabled = !track.enabled));
+            setIsVideoOff(!isVideoOff);
         }
     };
 
@@ -743,9 +763,25 @@ export default function MessagesPage() {
                 )}
 
                 {/* Controls */}
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
-                    <button onClick={leaveCall} className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4">
+                    {isVideoCall && (
+                        <button onClick={toggleVideo} className={`w-14 h-14 rounded-full flex items-center justify-center text-white transition-all shadow-lg ${isVideoOff ? 'bg-red-500/80 hover:bg-red-600/80' : 'bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/10'}`}>
+                            {isVideoOff ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M12 18.75H4.5a2.25 2.25 0 0 1-2.25-2.25V9m12.841 9.091L16.5 19.5m-1.409-1.409c.407-.407.659-.97.659-1.591v-9a2.25 2.25 0 0 0-2.25-2.25h-9c-.621 0-1.184.252-1.591.659m12.182 12.182L2.909 5.909M1.5 4.5l1.409 1.409" /></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                            )}
+                        </button>
+                    )}
+                    <button onClick={leaveCall} className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)]">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18v1.5h3v-1.5m-3 0h3" /></svg>
+                    </button>
+                    <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center text-white transition-all shadow-lg ${isMuted ? 'bg-red-500/80 hover:bg-red-600/80' : 'bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/10'}`}>
+                        {isMuted ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M11.99 18.25c-.246 0-.495-.018-.742-.051m4.332-1.785a8.25 8.25 0 0 0-6.19-20.916m3.929 1.839 1.447 1.446M5.895 5.895A8.25 8.25 0 0 0 12 18.25v2.25M17.657 6.343l-1.445 1.446M2.25 2.25l19.5 19.5" /></svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" /></svg>
+                        )}
                     </button>
                 </div>
             </div>
