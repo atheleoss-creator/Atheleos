@@ -59,10 +59,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // On successful login detection, fetch existing public key from backend if missing locally
                     const localPrivKey = await KeyStore.getPrivateKey();
                     if (!localPrivKey) {
-                        console.warn("E2EE Warning: No local private key found. User may not be able to read past messages.");
-                        // Generate a new keypair to at least allow new conversations to work,
-                        // Though historically encrypted messages will be lost on this device.
-                        // For a robust system, we would prompt the user to input a recovery phrase here.
+                        console.warn("E2EE Warning: No local private key found. Generating a new keypair...");
+                        try {
+                            const keyPair = await generateKeyPair();
+                            const privateKeyBase64 = await exportKey(keyPair.privateKey, 'pkcs8');
+                            const publicKeyBase64 = await exportKey(keyPair.publicKey, 'spki');
+                            
+                            await KeyStore.savePrivateKey(privateKeyBase64);
+                            
+                            await fetch('/api/auth/update-key', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ publicKey: publicKeyBase64 })
+                            });
+                            console.log("E2EE Info: New keypair generated and public key uploaded successfully.");
+                        } catch (err) {
+                            console.error("Failed to regenerate keys:", err);
+                        }
                     }
                 } else {
                     setUser(null);

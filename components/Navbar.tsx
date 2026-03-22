@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +18,25 @@ import Image from "next/image";
 
 export default function Navbar() {
     const pathname = usePathname();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+                setIsMobileMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <>
@@ -46,21 +64,53 @@ export default function Navbar() {
                         <NavItem href="/messages" icon={<MessagesIcon className="w-[22px] h-[22px]" />} active={pathname === "/messages"} label="Messages" />
                         <NavItem href="/notifications" icon={<NotificationsIcon className="w-[22px] h-[22px]" />} active={pathname === "/notifications"} label="Alerts" />
 
-                        <Link href={user?.username ? `/profile/${user.username}` : '#'} className="ml-1.5 group">
-                            <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname?.startsWith("/profile")
-                                ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.3)]"
-                                : "ring-white/10 group-hover:ring-accent-primary/50"
-                                }`}>
-                                <Image
-                                    src={user?.avatarUrl || "/default_avatar.svg"}
-                                    alt="Profile"
-                                    width={36}
-                                    height={36}
-                                    className="w-full h-full object-cover"
-                                    unoptimized
-                                />
-                            </div>
-                        </Link>
+                        <div className="relative ml-1.5" ref={menuRef}>
+                            <button 
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className="group block focus:outline-none"
+                            >
+                                <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname?.startsWith("/profile")
+                                    ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.3)]"
+                                    : "ring-white/10 group-hover:ring-accent-primary/50"
+                                    }`}>
+                                    <Image
+                                        src={user?.avatarUrl || "/default_avatar.svg"}
+                                        alt="Profile"
+                                        width={36}
+                                        height={36}
+                                        className="w-full h-full object-cover"
+                                        unoptimized
+                                    />
+                                </div>
+                            </button>
+                            
+                            {isMenuOpen && (
+                                <div className="absolute top-12 right-0 w-48 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 flex flex-col animate-fade-in py-1">
+                                    <Link 
+                                        href={user?.username ? `/profile/${user.username}` : '#'}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-3"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-text-secondary">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                        </svg>
+                                        Profile
+                                    </Link>
+                                    <button 
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            logout();
+                                        }}
+                                        className="px-4 py-3 text-sm text-red-500 hover:bg-white/10 transition-colors flex items-center gap-3 text-left w-full"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                        </svg>
+                                        Logout
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </nav>
