@@ -97,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
             setUser(null);
+            await KeyStore.clearKeys();
             router.push("/login");
         } catch (error) {
             console.error("Logout Error", error);
