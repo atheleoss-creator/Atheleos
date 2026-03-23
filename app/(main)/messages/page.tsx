@@ -225,7 +225,9 @@ export default function MessagesPage() {
     // ─── Socket Event Listeners ────────────────────
 
     useEffect(() => {
-        if (!socket || !isConnected) return;
+        // Guard on socket only — removing !isConnected so cleanup always runs on socket change
+        // and prevents stale listener pile-up after reconnects.
+        if (!socket) return;
 
         const handleReceiveMessage = async (data: any) => {
             // data: { recipientId, conversationId, messageId, content, senderId, senderName, senderAvatar, createdAt, iv, recipient_encrypted_key, sender_encrypted_key }
@@ -368,7 +370,7 @@ export default function MessagesPage() {
             socket.off("call_ended", handleCallEnded);
             if (typingTimeout) clearTimeout(typingTimeout);
         };
-    }, [socket, isConnected, myId, scrollToBottom, fetchConversations, decryptE2EMessage, typingTimeout, localStream]);
+    }, [socket, myId, scrollToBottom, fetchConversations, decryptE2EMessage, typingTimeout, localStream]);
 
     // ─── Open Conversation ─────────────────────────
 
