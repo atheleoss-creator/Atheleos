@@ -815,7 +815,9 @@ export default function MessagesPage() {
                 </div>
             </div>
         );
-    };\n\n    // ─── Filtered Conversations ────────────────────
+    };
+
+    // ─── Filtered Conversations ────────────────────
 
     const filteredConversations = conversations.filter(c => {
         if (!searchQuery.trim()) return true;

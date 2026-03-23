@@ -221,8 +221,8 @@ export default function LoginPage() {
                     </div>
                 )}
 
-                <p className="text-center text-[11px] text-text-tertiary mt-8">
-                    By signing in, you agree to our Terms of Service and Privacy Policy.
+                <p className="text-center text-[11px] text-text-tertiary mt-8 mb-4">
+                    By signing in, you agree to our <Link href="/terms" className="hover:underline text-text-secondary">Terms of Service</Link> and <Link href="/privacy" className="hover:underline text-text-secondary">Privacy Policy</Link>.
                 </p>
             </div>
         </div>

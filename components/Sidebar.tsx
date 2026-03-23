@@ -128,8 +128,8 @@ export default function Sidebar() {
                         <span className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Press</span>
                         <span className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">API</span>
                         <span className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Jobs</span>
-                        <span className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Privacy</span>
-                        <span className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Terms</span>
+                        <Link href="/privacy" className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Privacy</Link>
+                        <Link href="/terms" className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Terms</Link>
                     </div>
                     <span>© 2024 ATHELEOS</span>
                 </div>
