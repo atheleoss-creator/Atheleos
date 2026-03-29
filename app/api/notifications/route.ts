@@ -28,14 +28,15 @@ export async function GET() {
         const notifications = await query(`
             SELECT n.id, n.type, n.is_read, n.post_id, n.created_at, n.actor_id,
                    u.username AS actor_username, u.full_name AS actor_name, u.avatar_url AS actor_avatar,
-                   p.media_url AS post_media, p.media_type AS post_media_type
+                   p.media_url AS post_media, p.media_type AS post_media_type,
+                   (SELECT COUNT(*) > 0 FROM follows f WHERE f.follower_id = ? AND f.following_id = n.actor_id) AS is_following_actor
             FROM notifications n
             JOIN users u ON n.actor_id = u.id
             LEFT JOIN posts p ON n.post_id = p.id
             WHERE n.user_id = ?
             ORDER BY n.created_at DESC
             LIMIT 50
-        `, [currentUserId]);
+        `, [currentUserId, currentUserId]);
 
         return NextResponse.json({ notifications });
     } catch (error) {
@@ -63,10 +64,8 @@ export async function PUT(req: Request) {
         const { id } = body as { id?: number };
 
         if (id) {
-            // Mark a single notification as read
             await query('UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?', [id, currentUserId]);
         } else {
-            // Mark all as read
             await query('UPDATE notifications SET is_read = TRUE WHERE user_id = ?', [currentUserId]);
         }
 

@@ -18,17 +18,18 @@ interface Notification {
     actor_avatar: string;
     post_media: string | null;
     post_media_type: string | null;
+    is_following_actor: boolean;
 }
 
 /* ─── Filter config ─── */
 const FILTERS = [
     { label: "All", value: "all" },
-    { label: "Likes", value: "like", icon: "♥" },
-    { label: "Comments", value: "comment", icon: "💬" },
-    { label: "Follows", value: "follow", icon: "👤" },
+    { label: "Likes", value: "like" },
+    { label: "Comments", value: "comment" },
+    { label: "Follows", value: "follow" },
 ] as const;
 
-/* ─── Inline Icons (no external dependency issues) ─── */
+/* ─── Inline Icons ─── */
 const HeartBadge = () => (
     <div className="notif-badge notif-badge--like">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
@@ -71,19 +72,33 @@ export default function NotificationsPage() {
     const [activeFilter, setActiveFilter] = useState("all");
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
-    const [followedIds, setFollowedIds] = useState<Set<number>>(new Set());
+    const [error, setError] = useState<string | null>(null);
     const [followLoading, setFollowLoading] = useState<Set<number>>(new Set());
 
-    /* ─── Fetch ─── */
+    /* ─── Fetch notifications from DB ─── */
     const fetchNotifications = useCallback(async () => {
         try {
+            setError(null);
             const res = await fetch("/api/notifications");
-            if (res.ok) {
-                const data = await res.json();
-                setNotifications(data.notifications || []);
+            if (res.status === 401) {
+                setError("Please log in to see notifications.");
+                return;
             }
-        } catch (error) {
-            console.error("Failed to fetch notifications", error);
+            if (!res.ok) {
+                setError("Failed to load notifications.");
+                return;
+            }
+            const data = await res.json();
+            // Normalize is_following_actor from DB (may come as 0/1)
+            const normalized = (data.notifications || []).map((n: Record<string, unknown>) => ({
+                ...n,
+                is_read: !!n.is_read,
+                is_following_actor: !!n.is_following_actor,
+            }));
+            setNotifications(normalized);
+        } catch (err) {
+            console.error("Failed to fetch notifications", err);
+            setError("Network error. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -125,7 +140,7 @@ export default function NotificationsPage() {
         router.push(`/profile/${notif.actor_username}`);
     };
 
-    /* ─── Follow / Unfollow ─── */
+    /* ─── Follow / Unfollow (persists to DB via /api/follow) ─── */
     const handleFollowToggle = async (e: React.MouseEvent, actorId: number) => {
         e.stopPropagation();
 
@@ -140,18 +155,17 @@ export default function NotificationsPage() {
 
             if (res.ok) {
                 const data = await res.json();
-                setFollowedIds((prev) => {
-                    const next = new Set(prev);
-                    if (data.following) {
-                        next.add(actorId);
-                    } else {
-                        next.delete(actorId);
-                    }
-                    return next;
-                });
+                // Update the notification's is_following_actor field directly
+                setNotifications((prev) =>
+                    prev.map((n) =>
+                        n.actor_id === actorId
+                            ? { ...n, is_following_actor: data.following }
+                            : n
+                    )
+                );
             }
-        } catch (error) {
-            console.error("Follow error", error);
+        } catch (err) {
+            console.error("Follow error", err);
         } finally {
             setFollowLoading((prev) => {
                 const next = new Set(prev);
@@ -164,28 +178,20 @@ export default function NotificationsPage() {
     /* ─── Message text ─── */
     const getMessage = (type: string) => {
         switch (type) {
-            case "like":
-                return "liked your post";
-            case "comment":
-                return "commented on your post";
-            case "follow":
-                return "started following you";
-            default:
-                return "interacted with your profile";
+            case "like": return "liked your post";
+            case "comment": return "commented on your post";
+            case "follow": return "started following you";
+            default: return "interacted with your profile";
         }
     };
 
     /* ─── Icon badge ─── */
     const renderBadge = (type: string) => {
         switch (type) {
-            case "like":
-                return <HeartBadge />;
-            case "comment":
-                return <CommentBadge />;
-            case "follow":
-                return <FollowBadge />;
-            default:
-                return null;
+            case "like": return <HeartBadge />;
+            case "comment": return <CommentBadge />;
+            case "follow": return <FollowBadge />;
+            default: return null;
         }
     };
 
@@ -207,11 +213,9 @@ export default function NotificationsPage() {
     /* ─── Render ─── */
     return (
         <div className="min-h-screen bg-bg-body text-text-primary pb-24 md:pb-10">
-
             {/* ── Sticky Header ── */}
             <header className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]">
                 <div className="max-w-2xl mx-auto px-4">
-
                     {/* Title Row */}
                     <div className="flex items-center justify-between h-14">
                         <div className="flex items-center gap-3">
@@ -228,7 +232,6 @@ export default function NotificationsPage() {
                                 </span>
                             )}
                         </div>
-
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllAsRead}
@@ -268,7 +271,6 @@ export default function NotificationsPage() {
 
             {/* ── Notification List ── */}
             <main className="max-w-2xl mx-auto">
-
                 {/* Loading skeletons */}
                 {loading && (
                     <div className="flex flex-col">
@@ -285,8 +287,25 @@ export default function NotificationsPage() {
                     </div>
                 )}
 
+                {/* Error state */}
+                {!loading && error && (
+                    <div className="flex flex-col items-center justify-center py-24 px-6 animate-fade-in">
+                        <div className="w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5">
+                            <span className="text-3xl">⚠️</span>
+                        </div>
+                        <p className="text-lg font-bold text-white mb-1">Something went wrong</p>
+                        <p className="text-sm text-text-muted text-center max-w-xs mb-6">{error}</p>
+                        <button
+                            onClick={() => { setLoading(true); fetchNotifications(); }}
+                            className="px-6 py-2.5 rounded-full bg-white/[0.06] text-white text-sm font-semibold hover:bg-white/[0.1] transition-colors"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                )}
+
                 {/* Empty state */}
-                {!loading && filteredNotifications.length === 0 && (
+                {!loading && !error && filteredNotifications.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-24 px-6 animate-fade-in">
                         <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-5">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-9 h-9 text-text-tertiary">
@@ -303,10 +322,10 @@ export default function NotificationsPage() {
                 )}
 
                 {/* Notification items */}
-                {!loading && filteredNotifications.length > 0 && (
+                {!loading && !error && filteredNotifications.length > 0 && (
                     <div className="flex flex-col">
                         {filteredNotifications.map((notif) => {
-                            const isFollowed = followedIds.has(notif.actor_id);
+                            const isFollowed = notif.is_following_actor;
                             const isFollowLoading = followLoading.has(notif.actor_id);
 
                             return (
@@ -348,7 +367,7 @@ export default function NotificationsPage() {
                                         </p>
                                     </div>
 
-                                    {/* Right side action / media */}
+                                    {/* Right side: Follow button / Post thumbnail / Unread dot */}
                                     <div className="shrink-0 flex items-center">
                                         {notif.type === "follow" ? (
                                             <button
@@ -396,7 +415,6 @@ export default function NotificationsPage() {
 
             {/* ── Scoped Styles ── */}
             <style jsx>{`
-                /* Unread count badge */
                 .notif-unread-badge {
                     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
                     color: white;
@@ -406,10 +424,7 @@ export default function NotificationsPage() {
                     border-radius: 9999px;
                     min-width: 20px;
                     text-align: center;
-                    letter-spacing: 0.02em;
                 }
-
-                /* Filter chip */
                 .notif-chip {
                     padding: 6px 14px;
                     border-radius: 9999px;
@@ -428,10 +443,7 @@ export default function NotificationsPage() {
                 .notif-chip--active {
                     background: white !important;
                     color: black !important;
-                    border-color: transparent !important;
                 }
-
-                /* Notification item */
                 .notif-item {
                     display: flex;
                     align-items: center;
@@ -451,8 +463,6 @@ export default function NotificationsPage() {
                 .notif-item--unread:hover {
                     background: rgba(0, 212, 255, 0.06);
                 }
-
-                /* Unread accent bar */
                 .notif-accent-line {
                     position: absolute;
                     left: 0;
@@ -462,8 +472,6 @@ export default function NotificationsPage() {
                     border-radius: 0 3px 3px 0;
                     background: linear-gradient(180deg, #00d4ff, #7c3aed);
                 }
-
-                /* Type badge overlay */
                 :global(.notif-badge) {
                     position: absolute;
                     bottom: -2px;
@@ -476,17 +484,9 @@ export default function NotificationsPage() {
                     align-items: center;
                     justify-content: center;
                 }
-                :global(.notif-badge--like) {
-                    background: #ef4444;
-                }
-                :global(.notif-badge--comment) {
-                    background: #3b82f6;
-                }
-                :global(.notif-badge--follow) {
-                    background: linear-gradient(135deg, #00d4ff, #7c3aed);
-                }
-
-                /* Follow button */
+                :global(.notif-badge--like) { background: #ef4444; }
+                :global(.notif-badge--comment) { background: #3b82f6; }
+                :global(.notif-badge--follow) { background: linear-gradient(135deg, #00d4ff, #7c3aed); }
                 .notif-follow-btn {
                     padding: 6px 16px;
                     border-radius: 9999px;
@@ -521,8 +521,6 @@ export default function NotificationsPage() {
                     cursor: not-allowed;
                     transform: none;
                 }
-
-                /* Spinner */
                 .notif-spinner {
                     display: inline-block;
                     width: 14px;
@@ -535,8 +533,6 @@ export default function NotificationsPage() {
                 @keyframes notif-spin {
                     to { transform: rotate(360deg); }
                 }
-
-                /* Unread dot */
                 .notif-dot {
                     width: 9px;
                     height: 9px;
