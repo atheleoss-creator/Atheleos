@@ -30,6 +30,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Keep a ref so we can access the current socket in cleanup without stale closure
   const socketRef = useRef<Socket | null>(null);
+  const failCountRef = useRef(0);
 
   const isUserOnline = useCallback(
     (id: number | string) => onlineUsers.has(id.toString()),
@@ -52,23 +53,27 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     // Don't create a second socket if one is already open for this user
     if (socketRef.current?.connected) return;
 
+    // If we've already failed multiple times (server.js not running), stop trying
+    if (failCountRef.current >= 3) return;
+
     const socketInstance = io(window.location.origin, {
       path: "/socket.io/",
-      // Use polling — Hostinger Passenger doesn't support WebSocket upgrades
-      transports: ["polling"],
-      upgrade: false,
-      reconnectionAttempts: 15,
-      reconnectionDelay: 2000,
+      transports: ["polling", "websocket"],
+      upgrade: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 3000,
       reconnectionDelayMax: 10000,
+      timeout: 8000,
       forceNew: false,
+      autoConnect: true,
     });
 
     socketRef.current = socketInstance;
     setSocket(socketInstance);
 
     socketInstance.on("connect", () => {
+      failCountRef.current = 0; // Reset fail count on success
       setIsConnected(true);
-      // Always re-register the user on (re)connect so the server map stays accurate
       socketInstance.emit("register", userId);
       console.log("[Socket] Connected, registered userId:", userId);
     });
@@ -78,8 +83,13 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("[Socket] Disconnected:", reason);
     });
 
-    socketInstance.on("connect_error", (err) => {
-      console.error("[Socket] Connection error:", err.message);
+    socketInstance.on("connect_error", () => {
+      failCountRef.current++;
+      // After 3 failures, stop reconnecting silently — server.js likely isn't running
+      if (failCountRef.current >= 3) {
+        socketInstance.disconnect();
+        console.log("[Socket] Server unavailable — real-time features disabled. App continues with polling.");
+      }
     });
 
     // Online presence
