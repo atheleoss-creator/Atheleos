@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -75,6 +75,14 @@ export default function NotificationsPage() {
     const [error, setError] = useState<string | null>(null);
     const [followLoading, setFollowLoading] = useState<Set<number>>(new Set());
 
+    /* ─── Pull-to-refresh state ─── */
+    const [pullDistance, setPullDistance] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
+    const touchStartY = useRef(0);
+    const isPulling = useRef(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const PULL_THRESHOLD = 80;
+
     /* ─── Fetch notifications from DB ─── */
     const fetchNotifications = useCallback(async () => {
         try {
@@ -107,6 +115,58 @@ export default function NotificationsPage() {
     useEffect(() => {
         fetchNotifications();
     }, [fetchNotifications]);
+
+    /* ─── Pull-to-refresh handlers ─── */
+    const handleRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            const res = await fetch("/api/notifications");
+            if (res.ok) {
+                const data = await res.json();
+                const normalized = (data.notifications || []).map((n: Record<string, unknown>) => ({
+                    ...n,
+                    is_read: !!n.is_read,
+                    is_following_actor: !!n.is_following_actor,
+                }));
+                setNotifications(normalized);
+                setError(null);
+            }
+        } catch (err) {
+            console.error("Refresh failed", err);
+        } finally {
+            setRefreshing(false);
+        }
+    }, []);
+
+    const onTouchStart = useCallback((e: React.TouchEvent) => {
+        const scrollTop = scrollContainerRef.current?.scrollTop ?? window.scrollY;
+        if (scrollTop <= 0 && !refreshing) {
+            touchStartY.current = e.touches[0].clientY;
+            isPulling.current = true;
+        }
+    }, [refreshing]);
+
+    const onTouchMove = useCallback((e: React.TouchEvent) => {
+        if (!isPulling.current || refreshing) return;
+        const currentY = e.touches[0].clientY;
+        const diff = currentY - touchStartY.current;
+        if (diff > 0) {
+            // Apply resistance: the further you pull, the slower it moves
+            const resistance = Math.min(diff * 0.45, PULL_THRESHOLD + 40);
+            setPullDistance(resistance);
+        }
+    }, [refreshing]);
+
+    const onTouchEnd = useCallback(() => {
+        if (!isPulling.current) return;
+        isPulling.current = false;
+        if (pullDistance >= PULL_THRESHOLD && !refreshing) {
+            setPullDistance(PULL_THRESHOLD); // Snap to threshold
+            handleRefresh().then(() => setPullDistance(0));
+        } else {
+            setPullDistance(0);
+        }
+    }, [pullDistance, refreshing, handleRefresh]);
 
     /* ─── Mark as read (single) ─── */
     const markAsRead = async (id: number) => {
@@ -212,7 +272,44 @@ export default function NotificationsPage() {
 
     /* ─── Render ─── */
     return (
-        <div className="min-h-screen bg-bg-body text-text-primary pb-24 md:pb-10">
+        <div
+            ref={scrollContainerRef}
+            className="min-h-screen bg-bg-body text-text-primary pb-24 md:pb-10"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
+            {/* ── Pull-to-refresh indicator ── */}
+            <div
+                className="ptr-container"
+                style={{
+                    height: pullDistance > 0 || refreshing ? `${Math.max(pullDistance, refreshing ? 56 : 0)}px` : '0px',
+                    opacity: pullDistance > 10 || refreshing ? 1 : 0,
+                }}
+            >
+                <div className={`ptr-inner ${refreshing ? 'ptr-spinning' : ''}`}>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="ptr-icon"
+                        style={{
+                            transform: refreshing ? undefined : `rotate(${Math.min(pullDistance / PULL_THRESHOLD, 1) * 360}deg)`,
+                        }}
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
+                    </svg>
+                    <span className="ptr-text">
+                        {refreshing
+                            ? "Refreshing…"
+                            : pullDistance >= PULL_THRESHOLD
+                                ? "Release to refresh"
+                                : "Pull to refresh"}
+                    </span>
+                </div>
+            </div>
             {/* ── Sticky Header ── */}
             <header className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]">
                 <div className="max-w-2xl mx-auto px-4">
@@ -540,6 +637,37 @@ export default function NotificationsPage() {
                     background: #00d4ff;
                     box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
                     flex-shrink: 0;
+                }
+                /* Pull-to-refresh */
+                .ptr-container {
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: center;
+                    overflow: hidden;
+                    transition: height 0.25s ease, opacity 0.2s ease;
+                    pointer-events: none;
+                    user-select: none;
+                }
+                .ptr-inner {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding-bottom: 12px;
+                }
+                .ptr-icon {
+                    width: 20px;
+                    height: 20px;
+                    color: var(--color-accent-primary);
+                    transition: transform 0.1s linear;
+                    flex-shrink: 0;
+                }
+                .ptr-spinning .ptr-icon {
+                    animation: notif-spin 0.8s linear infinite;
+                }
+                .ptr-text {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: var(--color-text-secondary);
                 }
             `}</style>
         </div>
