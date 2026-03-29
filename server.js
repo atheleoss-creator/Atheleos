@@ -23,30 +23,36 @@ app.prepare().then(() => {
       const parsedUrl = parse(req.url, true);
 
       // Explicitly serve dynamically uploaded files
-      if (parsedUrl.pathname && parsedUrl.pathname.startsWith('/uploads/')) {
+      if (parsedUrl.pathname && parsedUrl.pathname.startsWith("/uploads/")) {
         // Resolve from STORAGE_PATH first if set, otherwise from local public folder
         const baseDir = process.env.STORAGE_PATH
-            ? path.join(process.env.STORAGE_PATH, 'uploads')
-            : path.join(__dirname, 'public', 'uploads');
-            
+          ? path.join(process.env.STORAGE_PATH, "uploads")
+          : path.join(__dirname, "public", "uploads");
+
         // Extract just the filename (e.g., /uploads/image.jpg -> image.jpg)
-        const filename = parsedUrl.pathname.replace('/uploads/', '');
+        const filename = parsedUrl.pathname.replace("/uploads/", "");
         const filePath = path.join(baseDir, filename);
         try {
           const stat = await fs.promises.stat(filePath);
           if (stat.isFile()) {
             const ext = path.extname(filePath).toLowerCase();
             const mimeTypes = {
-              '.jpg': 'image/jpeg',
-              '.jpeg': 'image/jpeg',
-              '.png': 'image/png',
-              '.gif': 'image/gif',
-              '.webp': 'image/webp',
-              '.mp4': 'video/mp4',
-              '.webm': 'video/webm'
+              ".jpg": "image/jpeg",
+              ".jpeg": "image/jpeg",
+              ".png": "image/png",
+              ".gif": "image/gif",
+              ".webp": "image/webp",
+              ".mp4": "video/mp4",
+              ".webm": "video/webm",
             };
-            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            res.setHeader(
+              "Content-Type",
+              mimeTypes[ext] || "application/octet-stream",
+            );
+            res.setHeader(
+              "Cache-Control",
+              "public, max-age=31536000, immutable",
+            );
             const stream = fs.createReadStream(filePath);
             return stream.pipe(res);
           }
@@ -177,7 +183,7 @@ app.prepare().then(() => {
     });
   });
 
-  server.listen(port, hostname, () => {
+  server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port} in PRODUCTION mode`);
   });
 });
