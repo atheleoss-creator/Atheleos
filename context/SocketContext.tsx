@@ -54,12 +54,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     const socketInstance = io(window.location.origin, {
       path: "/socket.io/",
-      // Force WebSocket — skip the HTTP long-polling handshake that Hostinger often blocks
-      transports: ["websocket"],
+      // Use polling — Hostinger Passenger doesn't support WebSocket upgrades
+      transports: ["polling"],
       upgrade: false,
       reconnectionAttempts: 15,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
       forceNew: false,
     });
 
