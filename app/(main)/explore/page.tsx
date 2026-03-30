@@ -365,7 +365,11 @@ export default function ExplorePage() {
                                                     <p className="text-[13px] text-text-secondary line-clamp-2 flex-1 leading-relaxed">{post.caption}</p>
                                                     {post.media_url && (
                                                         <div className="w-14 h-14 rounded-lg overflow-hidden relative shrink-0 bg-bg-surface">
-                                                            <Image src={post.media_url} alt="" fill className="object-cover" unoptimized />
+                                                            {post.media_type === 'video' ? (
+                                                                <video src={post.media_url} className="absolute inset-0 w-full h-full object-cover" muted loop playsInline />
+                                                            ) : (
+                                                                <Image src={post.media_url} alt="" fill className="object-cover" unoptimized />
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -448,14 +452,29 @@ export default function ExplorePage() {
                                     >
                                         {post.mediaUrl ? (
                                             <>
-                                                <Image
-                                                    src={post.mediaUrl}
-                                                    alt="Post"
-                                                    fill
-                                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                                    unoptimized
-                                                    sizes={isWide ? "66vw" : "33vw"}
-                                                />
+                                                {post.mediaType === 'video' ? (
+                                                    <video
+                                                        src={post.mediaUrl}
+                                                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        muted
+                                                        loop
+                                                        playsInline
+                                                        onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.pause();
+                                                            e.currentTarget.currentTime = 0;
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Image
+                                                        src={post.mediaUrl}
+                                                        alt="Post"
+                                                        fill
+                                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        unoptimized
+                                                        sizes={isWide ? "66vw" : "33vw"}
+                                                    />
+                                                )}
                                                 {/* Video badge */}
                                                 {post.mediaType === "video" && (
                                                     <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-md px-1.5 py-0.5">

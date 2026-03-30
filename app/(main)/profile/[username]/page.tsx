@@ -634,7 +634,22 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                             <div className="grid grid-cols-3 gap-1 md:gap-3">
                                 {profile.posts.filter((p: any) => p.media_url).map((post: any) => (
                                     <Link key={post.id} href={`/post/${post.id}`} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors block">
-                                        <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
+                                        {post.media_type === 'video' ? (
+                                            <video 
+                                                src={post.media_url} 
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                                muted 
+                                                loop 
+                                                playsInline 
+                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.pause();
+                                                    e.currentTarget.currentTime = 0;
+                                                }}
+                                            />
+                                        ) : (
+                                            <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
+                                        )}
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-4">
                                             <span className="text-white font-bold text-sm flex items-center gap-1">❤️ {post.likes_count || 0}</span>
                                             <span className="text-white font-bold text-sm flex items-center gap-1">💬 {post.comments_count || 0}</span>
