@@ -190,6 +190,25 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
         }
     };
 
+    // Delete comment
+    const handleDeleteComment = async (commentId: number) => {
+        if (!confirm("Are you sure you want to delete this comment?")) return;
+        try {
+            const res = await fetch(`/api/posts/${postId}/comments?commentId=${commentId}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                setCommentsList((prev) => prev.filter((c) => c.id !== commentId));
+                setCommentCount((c) => c - 1);
+                showToast("success", "Comment deleted");
+            } else {
+                showToast("error", "Failed to delete comment");
+            }
+        } catch {
+            showToast("error", "Failed to delete comment");
+        }
+    };
+
     // Share
     const handleShare = async () => {
         const url = `${window.location.origin}/post/${postId}`;
@@ -456,24 +475,36 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                             <div className="px-4 pb-4 space-y-1">
                                 {commentsList.map((comment) => {
                                     const cAvatar = comment.avatar_url || "/default_avatar.svg";
+                                    const canDelete = user?.username === comment.username || isOwnPost;
                                     return (
-                                        <div key={comment.id} className="flex gap-3 py-2.5 group">
-                                            <Link href={`/profile/${comment.username}`} className="shrink-0">
+                                        <div key={comment.id} className="flex gap-3 py-2.5 group hover:bg-white/[0.02] rounded-xl px-2 -mx-2 transition-colors">
+                                            <Link href={`/profile/${comment.username}`} className="shrink-0 mt-0.5">
                                                 <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/[0.06]">
                                                     <Image src={cAvatar} alt={comment.username} width={36} height={36} className="w-full h-full object-cover" unoptimized />
                                                 </div>
                                             </Link>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-[14px] leading-relaxed">
-                                                    <Link href={`/profile/${comment.username}`} className="font-bold text-white hover:underline mr-1.5 inline-flex items-center gap-1">
-                                                        {comment.username}
-                                                        {comment.is_verified && <Badge level={comment.verification_level} className="w-3.5 h-3.5" />}
-                                                    </Link>
-                                                    <span className="text-text-secondary">{comment.content}</span>
+                                            <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+                                                <div>
+                                                    <div className="text-[14px] leading-relaxed">
+                                                        <Link href={`/profile/${comment.username}`} className="font-bold text-white hover:underline mr-1.5 inline-flex items-center gap-1">
+                                                            {comment.username}
+                                                            {comment.is_verified && <Badge level={comment.verification_level} className="w-3.5 h-3.5" />}
+                                                        </Link>
+                                                        <span className="text-text-secondary">{comment.content}</span>
+                                                    </div>
+                                                    <span className="text-[11px] text-text-tertiary mt-0.5 block">
+                                                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                                                    </span>
                                                 </div>
-                                                <span className="text-[11px] text-text-tertiary mt-0.5 block">
-                                                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                                                </span>
+                                                {canDelete && (
+                                                    <button 
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                        className="p-1.5 text-text-tertiary hover:text-red-400 hover:bg-white/[0.06] rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                        title="Delete comment"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );

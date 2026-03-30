@@ -74,3 +74,50 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+// DELETE /api/posts/[id]/comments?commentId=xxx
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    try {
+        const currentUserId = await getUserId();
+        if (!currentUserId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const commentId = searchParams.get('commentId');
+
+        if (!commentId) {
+            return NextResponse.json({ error: 'Missing commentId' }, { status: 400 });
+        }
+
+        const { id: postId } = await params;
+
+        // Verify authorization: current user must be the comment author OR the post author
+        const checkSql = `
+            SELECT c.user_id AS comment_author, p.user_id AS post_author
+            FROM comments c
+            JOIN posts p ON c.post_id = p.id
+            WHERE c.id = ? AND c.post_id = ?
+        `;
+        const result = await query(checkSql, [commentId, postId]) as Array<Record<string, unknown>>;
+
+        if (result.length === 0) {
+            return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+        }
+
+        const commentAuthorId = result[0].comment_author;
+        const postAuthorId = result[0].post_author;
+
+        if (currentUserId !== commentAuthorId && currentUserId !== postAuthorId) {
+            return NextResponse.json({ error: 'Not authorized to delete this comment' }, { status: 403 });
+        }
+
+        // Output of the delete
+        await query('DELETE FROM comments WHERE id = ?', [commentId]);
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Delete Comment Error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
