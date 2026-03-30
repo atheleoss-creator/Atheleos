@@ -54,9 +54,12 @@ export default function FeedPost({ post }: { post: Post }) {
                 const entry = entries[0];
                 if (entry.isIntersecting) {
                     // Try to play with sound. If browser blocks it (NotAllowedError), fallback to muted or just catch error
-                    videoRef.current?.play().catch(() => {
+                    videoRef.current?.play().catch((error) => {
                         // Silent fail if autoplay is blocked by browser policy without user interaction
-                        console.warn("Autoplay with sound prevented by browser policy");
+                        if (error.name === 'NotAllowedError' && videoRef.current) {
+                            videoRef.current.muted = true;
+                            videoRef.current.play().catch(() => {});
+                        }
                     });
                 } else {
                     videoRef.current?.pause();

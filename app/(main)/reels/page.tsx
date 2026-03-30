@@ -14,6 +14,7 @@ export default function ReelsPage() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [reels, setReels] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [renderedCopies, setRenderedCopies] = useState(2);
 
     useEffect(() => {
         async function fetchReels() {
@@ -39,23 +40,18 @@ export default function ReelsPage() {
         const height = container.clientHeight;
         const totalReels = reels.length;
         const rawIndex = Math.round(scrollPosition / height);
-        const normalizedIndex = rawIndex % totalReels;
-        if (normalizedIndex !== activeIndex) setActiveIndex(normalizedIndex);
+        if (rawIndex !== activeIndex) setActiveIndex(rawIndex);
 
-        // Infinite loop: when user scrolls past the 2nd copy, reset to 1st copy seamlessly
-        const totalItems = totalReels * 3;
-        if (rawIndex >= totalReels * 2) {
-            container.scrollTop = totalReels * height + (scrollPosition % height);
-        } else if (rawIndex < totalReels && scrollPosition < height * 0.5 && totalReels > 1) {
-            container.scrollTop = totalReels * height;
+        // Append more copies seamlessly when nearing the bottom
+        if (rawIndex >= (renderedCopies - 1) * totalReels - 2) {
+            setRenderedCopies(prev => prev + 1);
         }
     };
 
-    // On mount, scroll to the middle (1st copy) so user can scroll both directions
+    // On mount, start at the very first reel
     useEffect(() => {
         if (containerRef.current && reels.length > 0) {
-            const height = containerRef.current.clientHeight;
-            containerRef.current.scrollTop = reels.length * height;
+            containerRef.current.scrollTop = 0;
         }
     }, [reels]);
 
@@ -114,15 +110,18 @@ export default function ReelsPage() {
                 onScroll={handleScroll}
                 className="w-full max-w-[500px] h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide relative"
             >
-                {/* Render 3 copies for seamless infinite loop */}
-                {[0, 1, 2].flatMap((copy) =>
-                    reels.map((reel: any, index: number) => (
-                        <ReelItem
-                            key={`${copy}-${reel.id}`}
-                            data={reel}
-                            isActive={index === activeIndex}
-                        />
-                    ))
+                {/* Dynamically append copies for a smooth infinite loop downwards */}
+                {Array.from({ length: renderedCopies }).flatMap((_, copy) =>
+                    reels.map((reel: any, index: number) => {
+                        const absoluteIndex = copy * reels.length + index;
+                        return (
+                            <ReelItem
+                                key={`${copy}-${reel.id}`}
+                                data={reel}
+                                isActive={absoluteIndex === activeIndex}
+                            />
+                        );
+                    })
                 )}
             </div>
         </div>
