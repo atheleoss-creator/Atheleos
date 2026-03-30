@@ -14,29 +14,87 @@ export default function Home() {
   const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const startY = React.useRef(0);
+
+  const fetchPosts = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const res = await fetch('/api/posts');
+      if (res.ok) {
+        const data = await res.json();
+        setPosts(data.posts || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch posts', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }
+  };
 
   useEffect(() => {
-    async function fetchPosts() {
-      try {
-        const res = await fetch('/api/posts');
-        if (res.ok) {
-          const data = await res.json();
-          setPosts(data.posts || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch posts', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchPosts();
   }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 10) {
+      startY.current = e.touches[0].clientY;
+    } else {
+      startY.current = 0;
+    }
+  };
+
+  const handlePostDeleteOrHide = (postId: number) => {
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  };
+
+  const handlePostUpdate = (postId: number, newCaption: string) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, caption: newCaption } : p));
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startY.current === 0 || window.scrollY > 10) return;
+    const y = e.touches[0].clientY;
+    const distance = y - startY.current;
+    if (distance > 0) {
+      setPullDistance(Math.min(distance * 0.4, 80));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance > 50 && !isRefreshing) {
+      setIsRefreshing(true);
+      fetchPosts(true);
+    } else {
+      setPullDistance(0);
+    }
+    startY.current = 0;
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 py-4 max-w-7xl mx-auto w-full">
 
       {/* Main Feed */}
-      <div className="flex flex-col gap-5 w-full max-w-[580px] mx-auto lg:mx-0">
+      <div 
+        className="flex flex-col gap-5 w-full max-w-[580px] mx-auto lg:mx-0"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+
+        {/* Pull to Refresh Indicator */}
+        <div 
+          className="flex justify-center items-center overflow-hidden transition-all duration-200"
+          style={{ height: isRefreshing ? '60px' : `${pullDistance}px`, opacity: pullDistance / 40 || isRefreshing ? 1 : 0 }}
+        >
+          <div 
+            className={`w-8 h-8 rounded-full border-2 border-accent-primary border-t-transparent ${isRefreshing ? 'animate-spin' : ''}`}
+            style={{ transform: isRefreshing ? 'none' : `rotate(${pullDistance * 4}deg)` }}
+          />
+        </div>
 
         {/* Stories */}
         <Stories />
@@ -104,7 +162,13 @@ export default function Home() {
           )}
 
           {!isLoading && posts.map((post: any) => (
-            <FeedPost key={`post-${post.id}`} post={post} />
+            <FeedPost 
+              key={`post-${post.id}`} 
+              post={post} 
+              onDelete={handlePostDeleteOrHide}
+              onHide={handlePostDeleteOrHide}
+              onUpdate={handlePostUpdate}
+            />
           ))}
         </div>
       </div>

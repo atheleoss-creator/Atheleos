@@ -32,7 +32,17 @@ interface Post {
     isSuggested?: boolean;
 }
 
-export default function FeedPost({ post }: { post: Post }) {
+export default function FeedPost({ 
+    post, 
+    onDelete, 
+    onHide, 
+    onUpdate 
+}: { 
+    post: Post;
+    onDelete?: (id: number) => void;
+    onHide?: (id: number) => void;
+    onUpdate?: (id: number, newCaption: string) => void;
+}) {
     const { user } = useAuth();
     const { showToast } = useNotification();
     const router = useRouter();
@@ -43,7 +53,42 @@ export default function FeedPost({ post }: { post: Post }) {
     const [commentCount, setCommentCount] = useState(post.comments);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
+    
+    // Action states
+    const [showMenu, setShowMenu] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editCaption, setEditCaption] = useState(post.caption);
+    const [currentCaption, setCurrentCaption] = useState(post.caption);
+
     const videoRef = React.useRef<HTMLVideoElement>(null);
+
+    // Caption parser helper
+    const renderCaption = (text: string) => {
+        if (!text) return null;
+        const words = text.split(/([\s\n]+)/); // Split by whitespace but keep the whitespace
+        return words.map((word, i) => {
+            if (word.startsWith('@') && word.length > 1) {
+                const username = word.substring(1).replace(/[^a-zA-Z0-9_.]/g, '');
+                const punctuation = word.substring(username.length + 1);
+                return (
+                    <span key={i}>
+                        <Link href={`/profile/${username}`} className="text-accent-primary hover:underline font-medium">
+                            @{username}
+                        </Link>
+                        {punctuation}
+                    </span>
+                );
+            }
+            if (word.startsWith('#') && word.length > 1) {
+                return (
+                    <span key={i} className="text-accent-primary font-medium">
+                        {word}
+                    </span>
+                );
+            }
+            return <span key={i}>{word}</span>;
+        });
+    };
 
     // Auto-play videos when in view
     React.useEffect(() => {
@@ -157,6 +202,58 @@ export default function FeedPost({ post }: { post: Post }) {
         }
     };
 
+    const handleDeletePost = async () => {
+        if (!confirm("Are you sure you want to delete this post?")) return;
+        try {
+            const res = await fetch(`/api/posts?id=${post.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                showToast("success", "Post deleted");
+                if (onDelete) onDelete(post.id);
+            } else {
+                throw new Error("Failed");
+            }
+        } catch {
+            showToast("error", "Failed to delete post");
+        }
+        setShowMenu(false);
+    };
+
+    const handleHidePost = async () => {
+        if (!confirm("Hide this post from everyone?")) return;
+        try {
+            const res = await fetch(`/api/posts/${post.id}/hide`, { method: 'POST' });
+            if (res.ok) {
+                showToast("success", "Post archived");
+                if (onHide) onHide(post.id);
+            } else {
+                throw new Error("Failed");
+            }
+        } catch {
+            showToast("error", "Failed to hide post");
+        }
+        setShowMenu(false);
+    };
+
+    const handleEditSave = async () => {
+        try {
+            const res = await fetch(`/api/posts/${post.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caption: editCaption })
+            });
+            if (res.ok) {
+                setCurrentCaption(editCaption);
+                showToast("success", "Post updated");
+                setIsEditing(false);
+                if (onUpdate) onUpdate(post.id, editCaption);
+            } else {
+                throw new Error("Failed");
+            }
+        } catch {
+            showToast("error", "Failed to update post");
+        }
+    };
+
     return (
         <div className="bg-black border border-white/[0.06] rounded-2xl overflow-hidden mb-2 relative shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:border-white/[0.1] transition-colors duration-300">
 
@@ -187,15 +284,42 @@ export default function FeedPost({ post }: { post: Post }) {
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 relative">
                     {post.isSuggested && (
                         <button className="px-4 py-1.5 bg-accent-primary text-black text-xs font-bold rounded-lg hover:bg-white hover:text-black transition-all uppercase tracking-wider shadow-[0_0_10px_rgba(0,212,255,0.2)]">
                             Follow
                         </button>
                     )}
-                    <button className="text-text-tertiary hover:text-white p-1.5 hover:bg-white/5 rounded-full transition-colors">
+                    <button onClick={() => setShowMenu(!showMenu)} className="text-text-tertiary hover:text-white p-1.5 hover:bg-white/5 rounded-full transition-colors">
                         <EllipsisHorizontalIcon className="w-5 h-5" />
                     </button>
+
+                    {showMenu && (
+                        <div className="absolute right-0 top-10 mt-2 w-48 bg-[#1A1A1A] rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.8)] border border-white/10 z-50 overflow-hidden">
+                            {user?.username === post.username ? (
+                                <>
+                                    <button onClick={() => { setShowMenu(false); setIsEditing(true); }} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors">
+                                        Edit Post
+                                    </button>
+                                    <button onClick={handleHidePost} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors border-t border-white/5">
+                                        Hide/Archive Post
+                                    </button>
+                                    <button onClick={handleDeletePost} className="w-full text-left px-4 py-3 text-sm text-red-500 font-medium hover:bg-red-500/10 transition-colors border-t border-white/5">
+                                        Delete Post
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => { setShowMenu(false); handleShare(); }} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors">
+                                        Copy Link
+                                    </button>
+                                    <button onClick={() => { setShowMenu(false); showToast("error", "Report submitted"); }} className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors border-t border-white/5">
+                                        Report
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -262,16 +386,33 @@ export default function FeedPost({ post }: { post: Post }) {
 
             {/* Caption */}
             <div className="px-4 pb-3">
-                <div className="text-[14px] leading-relaxed">
-                    <Link href={`/profile/${post.username}`} className="font-bold mr-2 hover:underline text-white">
-                        {post.username}
-                    </Link>
-                    <span className="text-text-secondary whitespace-pre-wrap">{post.caption}</span>
-                </div>
-                {commentCount > 0 && (
-                    <Link href={`/post/${post.id}`} className="text-text-tertiary text-[13px] mt-1.5 block hover:text-text-secondary transition-colors">
-                        View all {commentCount} comments
-                    </Link>
+                {isEditing ? (
+                    <div className="mt-2 bg-[#1A1A1A] p-3 rounded-xl border border-white/10">
+                        <textarea
+                            value={editCaption}
+                            onChange={(e) => setEditCaption(e.target.value)}
+                            className="w-full bg-transparent text-white text-[13px] outline-none resize-none min-h-[60px]"
+                            placeholder="Write a caption..."
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={() => setIsEditing(false)} className="text-xs text-text-tertiary hover:text-white font-medium px-3 py-1.5">Cancel</button>
+                            <button onClick={handleEditSave} className="text-xs bg-accent-primary text-black font-bold px-4 py-1.5 rounded-lg">Save</button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="text-[14px] leading-relaxed">
+                            <Link href={`/profile/${post.username}`} className="font-bold mr-2 hover:underline text-white">
+                                {post.username}
+                            </Link>
+                            <span className="text-text-secondary whitespace-pre-wrap">{renderCaption(currentCaption)}</span>
+                        </div>
+                        {commentCount > 0 && (
+                            <Link href={`/post/${post.id}`} className="text-text-tertiary text-[13px] mt-1.5 block hover:text-text-secondary transition-colors">
+                                View all {commentCount} comments
+                            </Link>
+                        )}
+                    </>
                 )}
             </div>
 

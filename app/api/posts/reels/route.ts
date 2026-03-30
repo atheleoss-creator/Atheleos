@@ -33,7 +33,7 @@ export async function GET() {
         (SELECT COUNT(*) > 0 FROM saved_posts s WHERE s.post_id = p.id AND s.user_id = ?) as isSaved
       FROM posts p
       JOIN users u ON p.user_id = u.id
-      WHERE p.media_type = 'video' AND p.media_url IS NOT NULL
+      WHERE p.media_type = 'video' AND p.media_url IS NOT NULL AND IFNULL(p.is_hidden, 0) = 0
       ORDER BY p.created_at DESC
       LIMIT 20
     `, [userId, userId]);

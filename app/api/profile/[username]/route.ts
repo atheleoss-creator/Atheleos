@@ -39,7 +39,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ username
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count
       FROM posts p
       JOIN users u ON p.user_id = u.id
-      WHERE u.id = ?
+      WHERE u.id = ? AND IFNULL(p.is_hidden, 0) = 0
       ORDER BY p.created_at DESC
       LIMIT 20
     `, [user.id]);

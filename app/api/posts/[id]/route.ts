@@ -35,7 +35,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
                 (SELECT COUNT(*) > 0 FROM saved_posts s WHERE s.post_id = p.id AND s.user_id = ?) AS isSaved
             FROM posts p
             JOIN users u ON p.user_id = u.id
-            WHERE p.id = ?
+            WHERE p.id = ? AND IFNULL(p.is_hidden, 0) = 0
         `, [currentUserId, currentUserId, postId]);
 
         if (!rows || rows.length === 0) {
@@ -52,6 +52,39 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json({ post });
     } catch (error) {
         console.error('Fetch Single Post Error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
+// PUT /api/posts/[id] — Edit post caption
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    try {
+        const { id: postId } = await params;
+        const currentUserId = await getUserId();
+
+        if (!currentUserId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await req.json();
+        const { caption } = body;
+
+        // Verify post ownership
+        const rows: any = await query('SELECT user_id FROM posts WHERE id = ?', [postId]);
+        if (!rows || rows.length === 0) {
+            return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+        }
+
+        if (rows[0].user_id !== currentUserId) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Update post
+        await query('UPDATE posts SET caption = ? WHERE id = ?', [caption, postId]);
+
+        return NextResponse.json({ success: true }, { status: 200 });
+    } catch (error) {
+        console.error('Update Post Error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
