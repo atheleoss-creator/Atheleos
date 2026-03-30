@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
     HeartIcon,
@@ -13,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid, BookmarkIcon as BookmarkIconSolid } from "@heroicons/react/24/solid";
 import { useAuth } from "@/context/AuthContext";
+import { useNotification } from "@/context/NotificationContext";
 
 interface Post {
     id: number;
@@ -32,6 +34,8 @@ interface Post {
 
 export default function FeedPost({ post }: { post: Post }) {
     const { user } = useAuth();
+    const { showToast } = useNotification();
+    const router = useRouter();
     const [isLiked, setIsLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likes);
     const [isSaved, setIsSaved] = useState(post.isSaved);
@@ -41,24 +45,28 @@ export default function FeedPost({ post }: { post: Post }) {
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
 
     const toggleLike = async () => {
-        setIsLiked(!isLiked);
-        setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+        const newLiked = !isLiked;
+        setIsLiked(newLiked);
+        setLikeCount(newLiked ? likeCount + 1 : likeCount - 1);
         try {
             const res = await fetch(`/api/posts/${post.id}/like`, { method: 'POST' });
             if (!res.ok) throw new Error('Failed');
+            if (newLiked) showToast("like", "Post liked!");
         } catch {
-            setIsLiked(isLiked);
+            setIsLiked(!newLiked);
             setLikeCount(likeCount);
         }
     };
 
     const toggleSave = async () => {
-        setIsSaved(!isSaved);
+        const newSaved = !isSaved;
+        setIsSaved(newSaved);
         try {
             const res = await fetch(`/api/posts/${post.id}/save`, { method: 'POST' });
             if (!res.ok) throw new Error('Failed');
+            showToast("save", newSaved ? "Post saved!" : "Post unsaved");
         } catch {
-            setIsSaved(isSaved);
+            setIsSaved(!newSaved);
         }
     };
 
@@ -74,9 +82,10 @@ export default function FeedPost({ post }: { post: Post }) {
             if (res.ok) {
                 setCommentText("");
                 setCommentCount(commentCount + 1);
+                showToast("comment", "Comment posted!");
             }
         } catch {
-            // Silent fail
+            showToast("error", "Failed to post comment");
         } finally {
             setIsSubmitting(false);
         }
@@ -95,6 +104,25 @@ export default function FeedPost({ post }: { post: Post }) {
         }
         setShowDoubleTapHeart(true);
         setTimeout(() => setShowDoubleTapHeart(false), 800);
+    };
+
+    const handleShare = async () => {
+        const url = `${window.location.origin}/post/${post.id}`;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: `Post by ${post.username}`, url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                showToast("success", "Link copied!", "Post URL copied to clipboard");
+            }
+        } catch {
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast("success", "Link copied!");
+            } catch {
+                // Silent fail
+            }
+        }
     };
 
     return (
@@ -140,25 +168,27 @@ export default function FeedPost({ post }: { post: Post }) {
             </div>
 
             {/* Media */}
-            <div className="relative w-full aspect-[4/5] bg-bg-surface overflow-hidden" onDoubleClick={handleDoubleTap}>
-                {post.mediaType === "video" ? (
-                    <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
-                ) : (
-                    <Image
-                        src={post.mediaUrl}
-                        alt="Post content"
-                        fill
-                        className="object-cover"
-                        unoptimized
-                    />
-                )}
-                {/* Double-tap heart animation */}
-                {showDoubleTapHeart && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <HeartIconSolid className="w-24 h-24 text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] animate-scale-in" />
-                    </div>
-                )}
-            </div>
+            <Link href={`/post/${post.id}`}>
+                <div className="relative w-full aspect-[4/5] bg-bg-surface overflow-hidden cursor-pointer" onDoubleClick={(e) => { e.preventDefault(); handleDoubleTap(); }}>
+                    {post.mediaType === "video" ? (
+                        <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                    ) : (
+                        <Image
+                            src={post.mediaUrl}
+                            alt="Post content"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                        />
+                    )}
+                    {/* Double-tap heart animation */}
+                    {showDoubleTapHeart && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                            <HeartIconSolid className="w-24 h-24 text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] animate-scale-in" />
+                        </div>
+                    )}
+                </div>
+            </Link>
 
             {/* Actions */}
             <div className="px-4 py-3 flex justify-between items-center">
@@ -172,12 +202,12 @@ export default function FeedPost({ post }: { post: Post }) {
                         <span className="font-bold text-[13px] select-none text-white">{likeCount.toLocaleString()}</span>
                     </button>
 
-                    <button className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
+                    <button onClick={() => router.push(`/post/${post.id}`)} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
                         <ChatBubbleOvalLeftIcon className="w-7 h-7 text-white group-hover:text-accent-primary transition-colors" />
                         <span className="font-bold text-[13px] select-none text-white">{commentCount}</span>
                     </button>
 
-                    <button className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center group">
+                    <button onClick={handleShare} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center group">
                         <PaperAirplaneIcon className="w-7 h-7 -rotate-45 mb-1 text-white group-hover:text-green-400 transition-colors" />
                     </button>
                 </div>
@@ -199,6 +229,11 @@ export default function FeedPost({ post }: { post: Post }) {
                     </Link>
                     <span className="text-text-secondary whitespace-pre-wrap">{post.caption}</span>
                 </div>
+                {commentCount > 0 && (
+                    <Link href={`/post/${post.id}`} className="text-text-tertiary text-[13px] mt-1.5 block hover:text-text-secondary transition-colors">
+                        View all {commentCount} comments
+                    </Link>
+                )}
             </div>
 
             {/* Comment Input */}

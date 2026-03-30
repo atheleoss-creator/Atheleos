@@ -417,7 +417,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 {activeTab === "posts" && (
                     <div className="grid grid-cols-3 gap-1 md:gap-3">
                         {profile.posts?.length > 0 ? profile.posts.map((post: any) => (
-                            <div key={post.id} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors">
+                            <Link key={post.id} href={`/post/${post.id}`} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors block">
                                 {post.media_url ? (
                                     <>
                                         <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
@@ -434,7 +434,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 {/* Delete button — own posts only */}
                                 {isOwnProfile && (
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }}
+                                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDeletePost(post.id); }}
                                         disabled={deletingPostId === post.id}
                                         className="absolute top-2 right-2 w-8 h-8 bg-black/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-300 transition-all z-10 border border-white/[0.06]"
                                         title="Delete post"
@@ -446,7 +446,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                         )}
                                     </button>
                                 )}
-                            </div>
+                            </Link>
                         )) : (
                             <div className="col-span-3 py-16 text-center animate-fade-in">
                                 <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
@@ -599,13 +599,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         {profile.posts?.filter((p: any) => p.media_url).length > 0 ? (
                             <div className="grid grid-cols-3 gap-1 md:gap-3">
                                 {profile.posts.filter((p: any) => p.media_url).map((post: any) => (
-                                    <div key={post.id} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors">
+                                    <Link key={post.id} href={`/post/${post.id}`} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors block">
                                         <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-4">
                                             <span className="text-white font-bold text-sm flex items-center gap-1">❤️ {post.likes_count || 0}</span>
                                             <span className="text-white font-bold text-sm flex items-center gap-1">💬 {post.comments_count || 0}</span>
                                         </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         ) : (

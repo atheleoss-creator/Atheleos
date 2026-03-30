@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
+import { useNotification } from "@/context/NotificationContext";
 
 export default function CreatePostPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const { showToast } = useNotification();
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -83,9 +85,11 @@ export default function CreatePostPage() {
 
             if (!res.ok) throw new Error('Failed to create post');
 
+            showToast("success", "Post shared!", "Your post is now live");
             router.push("/");
         } catch (error) {
             console.error('Share Error:', error);
+            showToast("error", "Failed to share", "Please try again");
             setIsSharing(false);
         }
     };

@@ -36,6 +36,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     } else {
       // Like
       await query('INSERT INTO likes (post_id, user_id) VALUES (?, ?)', [postId, currentUserId]);
+
+      // Create notification for the post owner
+      try {
+        const postOwner: any = await query('SELECT user_id FROM posts WHERE id = ?', [postId]);
+        if (postOwner.length > 0 && postOwner[0].user_id !== currentUserId) {
+          await query(
+            'INSERT INTO notifications (user_id, actor_id, type, post_id) VALUES (?, ?, ?, ?)',
+            [postOwner[0].user_id, currentUserId, 'like', postId]
+          );
+        }
+      } catch {
+        // Don't fail the like if notification fails
+      }
+
       return NextResponse.json({ liked: true });
     }
   } catch (error) {

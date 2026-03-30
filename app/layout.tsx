@@ -3,6 +3,8 @@ import { Outfit, Grand_Hotel } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";
+import { NotificationProvider } from "@/context/NotificationContext";
+import NotificationToast from "@/components/NotificationToast";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -33,10 +35,13 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SocketProvider>
-            <div className="relative min-h-screen flex flex-col">
-              {/* Navbar is now handled by conditional logic or specific page groups */}
-              {children}
-            </div>
+            <NotificationProvider>
+              <div className="relative min-h-screen flex flex-col">
+                {/* Navbar is now handled by conditional logic or specific page groups */}
+                {children}
+              </div>
+              <NotificationToast />
+            </NotificationProvider>
           </SocketProvider>
         </AuthProvider>
       </body>

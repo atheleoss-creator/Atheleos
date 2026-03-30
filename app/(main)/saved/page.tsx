@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useNotification } from "@/context/NotificationContext";
 
 interface SavedPost {
     id: number;
@@ -16,6 +18,7 @@ interface SavedPost {
 
 export default function SavedPage() {
     const router = useRouter();
+    const { showToast } = useNotification();
     const [posts, setPosts] = useState<SavedPost[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -40,9 +43,11 @@ export default function SavedPage() {
             const res = await fetch(`/api/posts/${postId}/save`, { method: "POST" });
             if (res.ok) {
                 setPosts((prev) => prev.filter((p) => p.id !== postId));
+                showToast("save", "Post unsaved");
             }
         } catch (err) {
             console.error("Unsave failed", err);
+            showToast("error", "Failed to unsave post");
         }
     };
 
@@ -57,6 +62,9 @@ export default function SavedPage() {
                         </svg>
                     </button>
                     <h1 className="text-lg font-bold">Saved</h1>
+                    {!loading && posts.length > 0 && (
+                        <span className="text-[12px] text-text-tertiary font-semibold">{posts.length} posts</span>
+                    )}
                 </div>
             </header>
 
@@ -89,7 +97,7 @@ export default function SavedPage() {
                 {!loading && posts.length > 0 && (
                     <div className="grid grid-cols-3 gap-1">
                         {posts.map((post) => (
-                            <div key={post.id} className="relative aspect-square group cursor-pointer rounded-md overflow-hidden bg-white/[0.03]">
+                            <Link key={post.id} href={`/post/${post.id}`} className="relative aspect-square group cursor-pointer rounded-md overflow-hidden bg-white/[0.03] block">
                                 {post.mediaUrl ? (
                                     post.mediaType === "video" ? (
                                         <div className="w-full h-full flex items-center justify-center bg-white/[0.02]">
@@ -118,7 +126,7 @@ export default function SavedPage() {
 
                                 {/* Unsave button */}
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); handleUnsave(post.id); }}
+                                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleUnsave(post.id); }}
                                     className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                                     title="Unsave"
                                 >
@@ -126,7 +134,7 @@ export default function SavedPage() {
                                         <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clipRule="evenodd" />
                                     </svg>
                                 </button>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}
