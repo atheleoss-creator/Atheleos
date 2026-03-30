@@ -316,7 +316,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
                     {/* Avatar & Name */}
                     <div className="flex flex-col md:flex-row md:items-end gap-4 mb-4 md:mb-0">
-                        <div className="relative shrink-0 group/avatar">
+                        <div className="relative shrink-0 group/avatar w-max">
                             <div className="w-[90px] h-[90px] md:w-[130px] md:h-[130px] rounded-2xl p-[3px] bg-gradient-to-tr from-accent-primary via-purple-500 to-accent-secondary shadow-[0_0_30px_rgba(0,212,255,0.2)]">
                                 <div className="w-full h-full rounded-[13px] border-4 border-bg-body overflow-hidden relative bg-bg-surface">
                                     <Image src={avatarUrl} alt={profile.username} fill className="object-cover" unoptimized />
@@ -454,7 +454,22 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                             <Link key={post.id} href={`/post/${post.id}`} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors block">
                                 {post.media_url ? (
                                     <>
-                                        <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
+                                        {post.media_type === 'video' ? (
+                                            <video
+                                                src={post.media_url}
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                muted
+                                                loop
+                                                playsInline
+                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.pause();
+                                                    e.currentTarget.currentTime = 0;
+                                                }}
+                                            />
+                                        ) : (
+                                            <Image src={post.media_url} alt="Post" fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
+                                        )}
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-4">
                                             <span className="text-white font-bold text-sm flex items-center gap-1">❤️ {post.likes_count || 0}</span>
                                             <span className="text-white font-bold text-sm flex items-center gap-1">💬 {post.comments_count || 0}</span>
