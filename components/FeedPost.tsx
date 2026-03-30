@@ -43,6 +43,35 @@ export default function FeedPost({ post }: { post: Post }) {
     const [commentCount, setCommentCount] = useState(post.comments);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+
+    // Auto-play videos when in view
+    React.useEffect(() => {
+        if (post.mediaType !== "video" || !videoRef.current) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (entry.isIntersecting) {
+                    // Try to play with sound. If browser blocks it (NotAllowedError), fallback to muted or just catch error
+                    videoRef.current?.play().catch(() => {
+                        // Silent fail if autoplay is blocked by browser policy without user interaction
+                        console.warn("Autoplay with sound prevented by browser policy");
+                    });
+                } else {
+                    videoRef.current?.pause();
+                }
+            },
+            { threshold: 0.6 } // Play when 60% of the video is visible
+        );
+
+        observer.observe(videoRef.current);
+
+        return () => {
+            if (videoRef.current) observer.unobserve(videoRef.current);
+            observer.disconnect();
+        };
+    }, [post.mediaType]);
 
     const toggleLike = async () => {
         const newLiked = !isLiked;
@@ -171,7 +200,14 @@ export default function FeedPost({ post }: { post: Post }) {
             <Link href={`/post/${post.id}`}>
                 <div className="relative w-full aspect-[4/5] bg-bg-surface overflow-hidden cursor-pointer" onDoubleClick={(e) => { e.preventDefault(); handleDoubleTap(); }}>
                     {post.mediaType === "video" ? (
-                        <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                        <video 
+                            ref={videoRef}
+                            src={post.mediaUrl} 
+                            controls 
+                            loop
+                            playsInline
+                            className="w-full h-full object-cover" 
+                        />
                     ) : (
                         <Image
                             src={post.mediaUrl}

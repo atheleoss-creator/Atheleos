@@ -137,7 +137,7 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
     const { showToast } = useNotification();
 
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isMuted, setIsMuted] = useState(true);
+    const [isMuted, setIsMuted] = useState(false);
     const [isLiked, setIsLiked] = useState(!!data.isLiked);
     const [likeCount, setLikeCount] = useState(data.likes || 0);
     const [isSaved, setIsSaved] = useState(!!data.isSaved);
