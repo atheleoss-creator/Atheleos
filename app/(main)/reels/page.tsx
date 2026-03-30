@@ -94,7 +94,7 @@ export default function ReelsPage() {
             {/* Back Button */}
             <button
                 onClick={() => router.back()}
-                className="absolute top-[68px] md:top-4 left-4 z-50 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 hover:bg-black/60 transition-all active:scale-90"
+                className="absolute top-[68px] md:top-[96px] left-4 z-50 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 hover:bg-black/60 transition-all active:scale-90"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -102,7 +102,7 @@ export default function ReelsPage() {
             </button>
 
             {/* Reels Title */}
-            <div className="absolute top-[68px] md:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2">
+            <div className="absolute top-[68px] md:top-[96px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-2">
                 <span className="text-white font-bold text-lg drop-shadow-lg">Reels</span>
                 <div className="w-2 h-2 bg-accent-primary rounded-full shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
             </div>
@@ -397,7 +397,7 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
             )}
 
             {/* Sound toggle */}
-            <div className="absolute top-[104px] md:top-14 right-4 z-30">
+            <div className="absolute top-[104px] md:top-[96px] right-4 z-30">
                 <button onClick={() => setIsMuted(!isMuted)} className="w-9 h-9 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 hover:bg-black/60 transition-all active:scale-90">
                     {isMuted ? (
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
