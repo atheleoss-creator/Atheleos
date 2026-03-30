@@ -33,12 +33,31 @@ export default function ReelsPage() {
     }, []);
 
     const handleScroll = () => {
-        if (!containerRef.current) return;
-        const scrollPosition = containerRef.current.scrollTop;
-        const height = containerRef.current.clientHeight;
-        const index = Math.round(scrollPosition / height);
-        if (index !== activeIndex) setActiveIndex(index);
+        if (!containerRef.current || reels.length === 0) return;
+        const container = containerRef.current;
+        const scrollPosition = container.scrollTop;
+        const height = container.clientHeight;
+        const totalReels = reels.length;
+        const rawIndex = Math.round(scrollPosition / height);
+        const normalizedIndex = rawIndex % totalReels;
+        if (normalizedIndex !== activeIndex) setActiveIndex(normalizedIndex);
+
+        // Infinite loop: when user scrolls past the 2nd copy, reset to 1st copy seamlessly
+        const totalItems = totalReels * 3;
+        if (rawIndex >= totalReels * 2) {
+            container.scrollTop = totalReels * height + (scrollPosition % height);
+        } else if (rawIndex < totalReels && scrollPosition < height * 0.5 && totalReels > 1) {
+            container.scrollTop = totalReels * height;
+        }
     };
+
+    // On mount, scroll to the middle (1st copy) so user can scroll both directions
+    useEffect(() => {
+        if (containerRef.current && reels.length > 0) {
+            const height = containerRef.current.clientHeight;
+            containerRef.current.scrollTop = reels.length * height;
+        }
+    }, [reels]);
 
     if (loading) {
         return (
@@ -88,20 +107,23 @@ export default function ReelsPage() {
                 <div className="w-2 h-2 bg-accent-primary rounded-full shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
             </div>
 
-            {/* Reel count indicator */}
-            <div className="absolute top-[72px] md:top-5 right-4 z-50 text-white/50 text-[12px] font-semibold">
-                {activeIndex + 1}/{reels.length}
-            </div>
+
 
             <div
                 ref={containerRef}
                 onScroll={handleScroll}
                 className="w-full max-w-[500px] h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide relative"
-                style={{ scrollBehavior: 'smooth' }}
             >
-                {reels.map((reel: any, index: number) => (
-                    <ReelItem key={reel.id} data={reel} isActive={index === activeIndex} />
-                ))}
+                {/* Render 3 copies for seamless infinite loop */}
+                {[0, 1, 2].flatMap((copy) =>
+                    reels.map((reel: any, index: number) => (
+                        <ReelItem
+                            key={`${copy}-${reel.id}`}
+                            data={reel}
+                            isActive={index === activeIndex}
+                        />
+                    ))
+                )}
             </div>
         </div>
     );

@@ -32,6 +32,7 @@ interface FollowUser {
     avatar_url: string;
     is_verified: boolean;
     verification_level: string;
+    is_following: boolean;
 }
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
@@ -51,6 +52,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     const [followModalType, setFollowModalType] = useState<"followers" | "following">("followers");
     const [followList, setFollowList] = useState<FollowUser[]>([]);
     const [followListLoading, setFollowListLoading] = useState(false);
+    const [followStates, setFollowStates] = useState<Record<number, boolean>>({});
+
+    // Follow toggle in modal
+    const [followLoadingId, setFollowLoadingId] = useState<number | null>(null);
 
     // Delete post
     const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
@@ -121,12 +126,41 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             const res = await fetch(`/api/follow/list?userId=${profile.id}&type=${type}`);
             if (res.ok) {
                 const data = await res.json();
-                setFollowList(data.users || []);
+                const users = data.users || [];
+                setFollowList(users);
+                const states: Record<number, boolean> = {};
+                users.forEach((u: FollowUser) => { states[u.id] = u.is_following; });
+                setFollowStates(states);
             }
         } catch (err) {
             console.error('Failed to load follow list', err);
         } finally {
             setFollowListLoading(false);
+        }
+    };
+
+    // Toggle follow from modal
+    const handleModalFollow = async (targetId: number) => {
+        if (followLoadingId) return;
+        setFollowLoadingId(targetId);
+        const prev = followStates[targetId];
+        setFollowStates(s => ({ ...s, [targetId]: !prev }));
+        try {
+            const res = await fetch('/api/follow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId: targetId })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setFollowStates(s => ({ ...s, [targetId]: data.following }));
+            } else {
+                setFollowStates(s => ({ ...s, [targetId]: prev }));
+            }
+        } catch {
+            setFollowStates(s => ({ ...s, [targetId]: prev }));
+        } finally {
+            setFollowLoadingId(null);
         }
     };
 
@@ -305,9 +339,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                     />
                                     <button
                                         onClick={() => avatarInputRef.current?.click()}
-                                        className="absolute -bottom-1 -right-1 w-9 h-9 bg-accent-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-accent-primary/30 border-2 border-bg-body hover:scale-110 active:scale-95 transition-transform"
+                                        className="absolute bottom-0 right-0 md:-bottom-1 md:-right-1 w-7 h-7 md:w-9 md:h-9 bg-accent-primary rounded-lg md:rounded-xl flex items-center justify-center text-white shadow-lg shadow-accent-primary/30 border-2 border-bg-body hover:scale-110 active:scale-95 transition-transform"
                                     >
-                                        <CameraIcon className="w-4.5 h-4.5" />
+                                        <CameraIcon className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                                     </button>
                                 </>
                             )}
@@ -673,24 +707,47 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 <div className="p-2">
                                     {followList.map((u) => {
                                         const uAvatar = u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}&background=random`;
+                                        const isMe = currentUser?.username === u.username;
+                                        const following = followStates[u.id];
                                         return (
-                                            <Link
+                                            <div
                                                 key={u.id}
-                                                href={`/profile/${u.username}`}
-                                                onClick={() => setShowFollowModal(false)}
                                                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors"
                                             >
-                                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-white/[0.06]">
-                                                    <Image src={uAvatar} alt={u.username} width={48} height={48} className="w-full h-full object-cover" unoptimized />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
+                                                <Link
+                                                    href={`/profile/${u.username}`}
+                                                    onClick={() => setShowFollowModal(false)}
+                                                    className="w-11 h-11 rounded-full overflow-hidden shrink-0 ring-2 ring-white/[0.06]"
+                                                >
+                                                    <Image src={uAvatar} alt={u.username} width={44} height={44} className="w-full h-full object-cover" unoptimized />
+                                                </Link>
+                                                <Link
+                                                    href={`/profile/${u.username}`}
+                                                    onClick={() => setShowFollowModal(false)}
+                                                    className="flex-1 min-w-0"
+                                                >
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="font-bold text-white text-[15px] truncate">{u.full_name || u.username}</span>
+                                                        <span className="font-bold text-white text-[14px] truncate">{u.full_name || u.username}</span>
                                                         {u.is_verified && <Badge level={u.verification_level} className="w-4 h-4" />}
                                                     </div>
-                                                    <span className="text-[13px] text-text-tertiary">@{u.username}</span>
-                                                </div>
-                                            </Link>
+                                                    <span className="text-[12px] text-text-tertiary">@{u.username}</span>
+                                                </Link>
+                                                {!isMe && (
+                                                    <button
+                                                        onClick={() => handleModalFollow(u.id)}
+                                                        disabled={followLoadingId === u.id}
+                                                        className={`shrink-0 px-4 py-1.5 rounded-lg text-[12px] font-bold tracking-wide uppercase transition-all active:scale-95 ${
+                                                            following
+                                                                ? 'bg-white/[0.06] border border-white/[0.1] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                                                : 'bg-accent-primary text-white shadow-[0_0_10px_rgba(0,212,255,0.15)]'
+                                                        }`}
+                                                    >
+                                                        {followLoadingId === u.id ? (
+                                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                                                        ) : following ? 'Following' : 'Follow'}
+                                                    </button>
+                                                )}
+                                            </div>
                                         );
                                     })}
                                 </div>
