@@ -20,58 +20,7 @@ app.prepare().then(() => {
       const parsedUrl = parse(req.url, true);
       const { pathname } = parsedUrl;
 
-      // ✅ FIX 1: Serve Next.js static files
-      if (pathname && pathname.startsWith("/_next/static/")) {
-        const filePath = path.join(
-          __dirname,
-          ".next",
-          pathname.replace("/_next/", ""),
-        );
-
-        try {
-          const stat = await fs.promises.stat(filePath);
-          if (stat.isFile()) {
-            const ext = path.extname(filePath).toLowerCase();
-
-            const mimeTypes = {
-              ".js": "application/javascript",
-              ".css": "text/css",
-              ".json": "application/json",
-              ".woff": "font/woff",
-              ".woff2": "font/woff2",
-              ".ttf": "font/ttf",
-              ".eot": "application/vnd.ms-fontobject",
-              ".svg": "image/svg+xml",
-            };
-
-            res.setHeader(
-              "Content-Type",
-              mimeTypes[ext] || "application/octet-stream",
-            );
-            res.setHeader(
-              "Cache-Control",
-              "public, max-age=31536000, immutable",
-            );
-
-            return fs.createReadStream(filePath).pipe(res);
-          }
-        } catch (e) {
-          // fallback to Next
-        }
-      }
-
-      // ✅ FIX 2: Serve public folder (images, etc.)
-      if (pathname && pathname.startsWith("/")) {
-        const publicPath = path.join(__dirname, "public", pathname);
-        try {
-          const stat = await fs.promises.stat(publicPath);
-          if (stat.isFile()) {
-            return fs.createReadStream(publicPath).pipe(res);
-          }
-        } catch (e) {}
-      }
-
-      // ✅ Your existing uploads logic (unchanged)
+      // Serve dynamically uploaded files from STORAGE_PATH
       if (pathname && pathname.startsWith("/uploads/")) {
         const baseDir = process.env.STORAGE_PATH
           ? path.join(process.env.STORAGE_PATH, "uploads")
@@ -108,7 +57,7 @@ app.prepare().then(() => {
         } catch (e) {}
       }
 
-      // ✅ Fallback to Next.js
+      // Let Next.js handle everything else (pages, API routes, static files)
       await handle(req, res, parsedUrl);
     } catch (err) {
       console.error("Error occurred handling", req.url, err);
