@@ -5,10 +5,9 @@ const path = require("path");
 const { Server } = require("socket.io");
 const fs = require("fs");
 
-// Use production mode if specifically requested or if a production build exists
-// This ensures we NEVER accidentally run Turbopack dev mode on production servers
-const hasBuild = fs.existsSync(path.join(__dirname, '.next', 'BUILD_ID'));
-const dev = process.env.NODE_ENV !== "production" && !hasBuild;
+// DEFAULT to production mode. Only use dev mode when explicitly set.
+// This prevents Turbopack dev mode from accidentally running on production servers.
+const dev = process.env.NODE_ENV === "development";
 const hostname = "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
