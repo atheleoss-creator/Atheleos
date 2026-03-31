@@ -1,0 +1,3 @@
+{
+  "/api/users/[username]/public-key/route": "app/api/users/[username]/public-key/route.js"
+}
