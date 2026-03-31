@@ -5,9 +5,9 @@ const path = require("path");
 const { Server } = require("socket.io");
 const fs = require("fs");
 
-// DEFAULT to production mode. Only use dev mode when explicitly set.
-// This prevents Turbopack dev mode from accidentally running on production servers.
-const dev = process.env.NODE_ENV === "development";
+// PRODUCTION SERVER — Always runs in production mode.
+// For local development, use: npx next dev
+const dev = false;
 const hostname = "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
