@@ -27,7 +27,7 @@ export async function GET() {
 
         // Fetch recent likes
         const likes = await query(`
-            SELECT 'like' AS type, l.created_at, p.id AS post_id, p.media_url, p.caption,
+            SELECT 'like' AS type, l.created_at, p.id AS post_id, p.media_url, p.media_type, p.caption,
                    u.username AS post_owner_username
             FROM likes l
             JOIN posts p ON l.post_id = p.id
@@ -39,7 +39,7 @@ export async function GET() {
 
         // Fetch recent comments
         const comments = await query(`
-            SELECT 'comment' AS type, c.created_at, c.content, p.id AS post_id, p.media_url,
+            SELECT 'comment' AS type, c.created_at, c.content, p.id AS post_id, p.media_url, p.media_type,
                    u.username AS post_owner_username
             FROM comments c
             JOIN posts p ON c.post_id = p.id

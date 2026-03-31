@@ -10,6 +10,7 @@ interface ActivityItem {
     created_at: string;
     post_id?: number;
     media_url?: string;
+    media_type?: string;
     caption?: string;
     content?: string;
     post_owner_username?: string;
@@ -158,7 +159,15 @@ export default function ActivityPage() {
 
                                 {item.media_url && item.type !== "follow" && (
                                     <div className="w-10 h-10 rounded-md overflow-hidden bg-white/[0.04] shrink-0">
-                                        <Image src={item.media_url} alt="" width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                                        {item.media_type === "video" ? (
+                                            <div className="w-full h-full flex items-center justify-center bg-white/[0.06]">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-text-muted">
+                                                    <path fillRule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                        ) : (
+                                            <Image src={item.media_url} alt="" width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                                        )}
                                     </div>
                                 )}
 
