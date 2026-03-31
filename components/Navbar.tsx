@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
     HomeIcon,
@@ -18,12 +18,25 @@ import Image from "next/image";
 
 export default function Navbar() {
     const pathname = usePathname();
+    const router = useRouter();
     const { user, logout } = useAuth();
     
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+    const pressTimer = useRef<NodeJS.Timeout | null>(null);
+
+    const handleTouchStart = () => {
+        pressTimer.current = setTimeout(() => {
+            setIsMobileMenuOpen(true);
+            if (navigator.vibrate) navigator.vibrate(50);
+        }, 500);
+    };
+
+    const handleTouchEnd = () => {
+        if (pressTimer.current) clearTimeout(pressTimer.current);
+    };
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -148,18 +161,57 @@ export default function Navbar() {
                         </div>
                     } active={pathname === "/create-post"} isCreate />
                     <MobileNavItem href="/reels" icon={<ReelsIcon className="w-6 h-6" />} active={pathname === "/reels"} />
-                    <Link href={user?.username ? `/profile/${user.username}` : '#'} className="flex-1 flex items-center justify-center h-full">
-                        <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${pathname?.startsWith("/profile") ? "ring-accent-primary" : "ring-transparent"}`}>
-                            <Image
-                                src={user?.avatarUrl || "/default_avatar.svg"}
-                                alt="Profile"
-                                width={28}
-                                height={28}
-                                className="w-full h-full object-cover"
-                                unoptimized
-                            />
-                        </div>
-                    </Link>
+                    <div 
+                        className="flex-1 flex items-center justify-center h-full relative select-none" 
+                        ref={mobileMenuRef}
+                    >
+                        <button 
+                            onClick={(e) => {
+                                if (!isMobileMenuOpen) {
+                                    router.push(user?.username ? `/profile/${user.username}` : '#');
+                                }
+                            }}
+                            onTouchStart={handleTouchStart}
+                            onTouchEnd={handleTouchEnd}
+                            onTouchMove={handleTouchEnd}
+                            onContextMenu={(e) => {
+                                e.preventDefault(); 
+                                setIsMobileMenuOpen(true);
+                                if (navigator.vibrate) navigator.vibrate(50);
+                            }}
+                            className="flex items-center justify-center p-2 focus:outline-none"
+                            style={{ WebkitTouchCallout: "none" }}
+                        >
+                            <div className={`w-7 h-7 rounded-full overflow-hidden ring-2 transition-all ${pathname?.startsWith("/profile") ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.4)]" : "ring-transparent"}`}>
+                                <Image
+                                    src={user?.avatarUrl || "/default_avatar.svg"}
+                                    alt="Profile"
+                                    width={28}
+                                    height={28}
+                                    className="w-full h-full object-cover"
+                                    unoptimized
+                                />
+                            </div>
+                        </button>
+
+                        {/* Mobile Long Press Menu */}
+                        {isMobileMenuOpen && (
+                            <div className="absolute bottom-[64px] right-2 w-48 bg-[#111] backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.8)] z-50 flex flex-col animate-fade-in py-1">
+                                <button 
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        logout();
+                                    }}
+                                    className="px-4 py-3.5 text-[15px] font-bold text-red-500 hover:bg-white/10 active:bg-white/5 transition-colors flex items-center gap-3 text-left w-full"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-[20px] h-[20px]">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                    </svg>
+                                    Log out
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </>
