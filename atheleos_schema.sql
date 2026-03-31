@@ -39,6 +39,7 @@ CREATE TABLE posts (
     media_type ENUM('image', 'video', 'text') NOT NULL DEFAULT 'text',
     caption TEXT,
     location VARCHAR(100),
+    is_hidden BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
