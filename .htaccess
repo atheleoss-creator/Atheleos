@@ -1,0 +1,23 @@
+# Hostinger Node.js - Proxy all requests to the Node.js application
+# This ensures Apache doesn't try to serve static files itself
+# and forwards everything (including /_next/static/*) to server.js
+
+DirectoryIndex disabled
+
+RewriteEngine On
+
+# Do not rewrite requests for real physical files (like .env, robots.txt)
+# EXCEPT for _next directory which must go through Node.js
+RewriteCond %{REQUEST_URI} ^/_next/ [OR]
+RewriteCond %{REQUEST_URI} ^/api/ [OR]
+RewriteCond %{REQUEST_URI} ^/uploads/
+RewriteRule ^(.*)$ http://127.0.0.1:%{ENV:PORT}/$1 [P,L]
+
+# For all other requests, check if a real file exists
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ http://127.0.0.1:%{ENV:PORT}/$1 [P,L]
+
+# If the file doesn't exist on disk, proxy to Node anyway
+# This catches the root URL and all page routes
+RewriteRule ^$ http://127.0.0.1:%{ENV:PORT}/ [P,L]
