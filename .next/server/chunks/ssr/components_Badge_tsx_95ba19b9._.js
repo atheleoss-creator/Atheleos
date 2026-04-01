@@ -1,0 +1,3 @@
+module.exports=[13284,a=>{"use strict";var b=a.i(87924),c=a.i(99361);function d({level:a,className:d="",showTooltip:e=!1}){let f=(a=>{switch(a?.toLowerCase()){case"struggler":default:return"#3B82F6";case"state":return"#9CA3AF";case"national":return"#FCD34D";case"international":return"#000000"}})(a),g=a?.toLowerCase()==="international"?"white":"black",h=a?`${a.charAt(0).toUpperCase()+a.slice(1)} Athlete`:"Verified Athlete";return(0,b.jsx)("div",{className:`relative flex items-center justify-center ${d}`,title:e?h:void 0,children:(0,b.jsx)(c.BadgeIcon,{className:"w-full h-full",color:f,tickColor:g})})}a.s(["default",()=>d])}];
+
+//# sourceMappingURL=components_Badge_tsx_95ba19b9._.js.map

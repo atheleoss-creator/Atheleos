@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+# .next is NOT ignored — we push the build to git for Hostinger deployment
 /out/
 
 # production
