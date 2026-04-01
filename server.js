@@ -20,6 +20,47 @@ app.prepare().then(() => {
       const parsedUrl = parse(req.url, true);
       const { pathname } = parsedUrl;
 
+      // Serve Next.js static assets directly from .next/static
+      if (pathname && pathname.startsWith("/_next/static/")) {
+        const relativePath = pathname.replace("/_next/static/", "");
+        const filePath = path.join(__dirname, ".next", "static", relativePath);
+
+        try {
+          const stat = await fs.promises.stat(filePath);
+          if (stat.isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const mimeTypes = {
+              ".js": "application/javascript",
+              ".css": "text/css",
+              ".woff": "font/woff",
+              ".woff2": "font/woff2",
+              ".ttf": "font/ttf",
+              ".eot": "application/vnd.ms-fontobject",
+              ".svg": "image/svg+xml",
+              ".png": "image/png",
+              ".jpg": "image/jpeg",
+              ".gif": "image/gif",
+              ".webp": "image/webp",
+              ".json": "application/json",
+              ".map": "application/json",
+            };
+
+            res.setHeader(
+              "Content-Type",
+              mimeTypes[ext] || "application/octet-stream",
+            );
+            res.setHeader(
+              "Cache-Control",
+              "public, max-age=31536000, immutable",
+            );
+
+            return fs.createReadStream(filePath).pipe(res);
+          }
+        } catch (e) {
+          console.error(`[static] File not found: ${filePath}`);
+        }
+      }
+
       // Serve dynamically uploaded files from STORAGE_PATH
       if (pathname && pathname.startsWith("/uploads/")) {
         const baseDir = process.env.STORAGE_PATH
@@ -168,5 +209,20 @@ app.prepare().then(() => {
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
+    // Diagnostic: verify .next/static exists
+    const staticDir = path.join(__dirname, ".next", "static");
+    try {
+      const entries = fs.readdirSync(staticDir);
+      console.log(`> .next/static exists with ${entries.length} entries:`, entries);
+      const chunksDir = path.join(staticDir, "chunks");
+      if (fs.existsSync(chunksDir)) {
+        const chunks = fs.readdirSync(chunksDir);
+        console.log(`> .next/static/chunks has ${chunks.length} files`);
+      } else {
+        console.error("> ERROR: .next/static/chunks does NOT exist!");
+      }
+    } catch (e) {
+      console.error("> ERROR: .next/static does NOT exist!", e.message);
+    }
   });
 });
