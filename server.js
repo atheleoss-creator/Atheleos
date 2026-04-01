@@ -209,7 +209,14 @@ app.prepare().then(() => {
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
-    // Diagnostic: verify .next/static exists
+    // Diagnostic: verify build integrity
+    const buildIdPath = path.join(__dirname, ".next", "BUILD_ID");
+    try {
+      const buildId = fs.readFileSync(buildIdPath, "utf8").trim();
+      console.log(`> BUILD_ID: ${buildId}`);
+    } catch (e) {
+      console.error("> ERROR: No BUILD_ID found!", e.message);
+    }
     const staticDir = path.join(__dirname, ".next", "static");
     try {
       const entries = fs.readdirSync(staticDir);
@@ -217,7 +224,8 @@ app.prepare().then(() => {
       const chunksDir = path.join(staticDir, "chunks");
       if (fs.existsSync(chunksDir)) {
         const chunks = fs.readdirSync(chunksDir);
-        console.log(`> .next/static/chunks has ${chunks.length} files`);
+        console.log(`> .next/static/chunks has ${chunks.length} files:`);
+        console.log(`> Chunk names: ${chunks.join(", ")}`);
       } else {
         console.error("> ERROR: .next/static/chunks does NOT exist!");
       }
