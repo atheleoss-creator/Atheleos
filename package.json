@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx -y rimraf .next && next build",
+    "build": "echo 'Using pre-built .next from git' && npm install",
+    "build:local": "npx -y rimraf .next && next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint"
   },

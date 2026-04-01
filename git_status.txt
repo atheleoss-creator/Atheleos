@@ -1,0 +1,4 @@
+ .gitignore               | 5 +++++
+ .next/cache/.tsbuildinfo | 1 +
+ package.json             | 3 ++-
+ 3 files changed, 8 insertions(+), 1 deletion(-)
