@@ -49,7 +49,7 @@ app.prepare().then(() => {
             );
             res.setHeader(
               "Cache-Control",
-              "public, max-age=31536000, immutable",
+              "public, max-age=0, must-revalidate",
             );
 
             return fs.createReadStream(filePath).pipe(res);
