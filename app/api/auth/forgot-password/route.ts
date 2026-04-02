@@ -4,7 +4,8 @@ import { sendOTP } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    const { email: rawEmail } = await req.json();
+    const email = rawEmail?.trim();
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
     const users: any = await query('SELECT * FROM users WHERE email = ?', [email]);
     
     if (users.length === 0) {
+       console.log(`[Forgot Password] Email not found in DB: ${email}`);
        // Best practice: Don't reveal if email exists, just return success
       return NextResponse.json({ success: true, message: 'If an account exists, an OTP has been sent.' }, { status: 200 });
     }

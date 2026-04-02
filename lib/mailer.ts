@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 export async function sendOTP(to: string, otp: string, purpose: 'signup' | 'reset' = 'signup') {
     const subject = purpose === 'signup' 
         ? 'Welcome to Atheleos - Verify Your Email'
-        : 'Atheleos - Password Reset Verfication';
+        : 'Atheleos - Password Reset Verification';
 
     const html_signup = `
         <div style="font-family: Arial, sans-serif; padding: 40px; text-align: center; background-color: #0f172a; color: white;">

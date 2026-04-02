@@ -6,7 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
 export async function POST(req: Request) {
   try {
-    const { email, otp } = await req.json();
+    const { email: rawEmail, otp } = await req.json();
+    const email = rawEmail?.trim();
 
     if (!email || !otp) {
       return NextResponse.json({ error: 'Email and OTP are required' }, { status: 400 });

@@ -4,10 +4,11 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
   try {
-    const { email, otp, newPassword } = await req.json();
+    const { email: rawEmail, otp, newPassword } = await req.json();
+    const email = rawEmail?.trim();
 
     if (!email || !otp || !newPassword) {
-      return NextResponse.json({ error: 'Email, OTP, and new password are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const users: any = await query('SELECT * FROM users WHERE email = ?', [email]);
