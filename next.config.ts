@@ -1,12 +1,9 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
   images: {
     unoptimized: true,
-  },
-  generateBuildId: async () => {
-    // Deterministic build ID based on timestamp — prevents stale chunk issues
-    return `build-${Date.now()}`;
   },
 };
 
