@@ -69,7 +69,7 @@ export default function SignupPage() {
             }
 
             setSavedEmail(formData.email);
-            window.location.href = '/login';
+            setStep('otp');
 
         } catch (err: any) {
             setError(err.message);
