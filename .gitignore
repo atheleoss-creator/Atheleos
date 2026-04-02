@@ -14,12 +14,7 @@
 /coverage
 
 # next.js
-# .next is NOT ignored — we push the build to git for Hostinger deployment
-# But exclude large/unnecessary subdirectories
-/.next/cache/
-/.next/diagnostics/
-/.next/trace
-/.next/trace-build
+/.next/
 /out/
 
 # production

@@ -1,12 +1,10 @@
 # Hostinger Node.js (Passenger)
-# Ensure ALL requests go through Node.js, not served by Apache directly
+# Route ALL requests through Node.js — no exceptions
 
 DirectoryIndex disabled
 
 RewriteEngine On
 
-# Pass everything through to Node.js/Passenger
-# The [PT] flag passes to the next handler (Passenger) instead of proxying
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Pass every single request to Node.js/Passenger
+# No file/directory existence checks — Node.js handles everything
 RewriteRule ^(.*)$ /$1 [L,PT]
