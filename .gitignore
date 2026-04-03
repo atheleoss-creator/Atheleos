@@ -43,3 +43,18 @@ next-env.d.ts
 # User Uploads
 public/uploads/*
 !public/uploads/.gitkeep
+
+# scratch / debug files — never deploy these
+*.log
+*.txt
+db_output.json
+versions.json
+page.html
+check.js
+check2.js
+find-path.js
+patch_ui.js
+test-db.js
+test_db.js
+test_endpoints.js
+test_insert.js

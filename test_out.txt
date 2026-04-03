@@ -1,7 +1,0 @@
-Testing Core APIs...
-Γ¥î /api/posts failed with status 401: {"error":"Unauthorized"}
-Γ¥î /api/events failed with status 401: {"error":"Unauthorized"}
-Γ¥î /api/marketplace failed with status 401: {"error":"Unauthorized"}
-Γ¥î /api/notifications failed with status 401: {"error":"Unauthorized"}
-Γ¥î /api/messages failed with status 401: {"error":"Unauthorized"}
-Γ¥î /api/users/suggested failed with status 401: {"error":"Unauthorized"}
