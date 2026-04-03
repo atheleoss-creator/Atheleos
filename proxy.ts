@@ -20,9 +20,23 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
+    const nextResponseWithNoStore = () => {
+        const response = NextResponse.next();
+        if (isAuthRoute) {
+            response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            response.headers.set('Pragma', 'no-cache');
+            response.headers.set('Expires', '0');
+        }
+        return response;
+    };
+
     // 1. If user IS logged in and tries to access login/signup → redirect to home
     if (token && isAuthRoute) {
-        return NextResponse.redirect(new URL('/', request.url));
+        const response = NextResponse.redirect(new URL('/', request.url));
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
+        return response;
     }
 
     // 2. If user is NOT logged in and tries to access a protected route
@@ -41,10 +55,14 @@ export function proxy(request: NextRequest) {
         // Otherwise, redirect to login page
         const url = new URL('/login', request.url);
         url.searchParams.set('from', pathname);
-        return NextResponse.redirect(url);
+        const response = NextResponse.redirect(url);
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
+        return response;
     }
 
-    return NextResponse.next();
+    return nextResponseWithNoStore();
 }
 
 export const config = {
