@@ -190,6 +190,61 @@ export default function MessagesPage() {
         return () => clearInterval(interval);
     }, [fetchConversations]);
 
+    // ─── Active Chat Polling (every 3 seconds fallback) ───────────
+
+    useEffect(() => {
+        if (!activeConversation || typeof activeConversation.conversationId === 'string') return;
+        
+        // If sockets are connected, we don't strictly need to fallback poll aggressively, 
+        // but it's safe to do so to ensure 100% message delivery. 
+        // We poll every 3 seconds if disconnected, or 10 seconds if connected.
+        const pollRate = isConnected ? 10000 : 3000;
+
+        const pollActiveChat = async () => {
+            try {
+                const res = await fetch(`/api/messages/${activeConversation.conversationId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    const decryptedMessages = await Promise.all(
+                        (data.messages || []).map((m: any) => decryptE2EMessage(m))
+                    );
+
+                    const msgs = decryptedMessages.map((m: any) => ({
+                        ...m,
+                        status: m.is_read ? "seen" : "sent",
+                    }));
+                    
+                    setMessages(prev => {
+                        // Check if we actually have new data
+                        if (msgs.length === prev.length) {
+                            // Check if last message status changed (e.g. read receipts)
+                            const lastPrev = prev[prev.length - 1];
+                            const lastNew = msgs[msgs.length - 1];
+                            if (lastPrev?.status === lastNew?.status && lastPrev?.is_read === lastNew?.is_read) {
+                                return prev; 
+                            }
+                        }
+                        
+                        // If it changed, see if we need to auto-scroll
+                        const hasNewMessage = msgs.length > prev.length;
+                        if (hasNewMessage) {
+                            setTimeout(() => {
+                                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                            }, 100);
+                        }
+                        return msgs;
+                    });
+                }
+            } catch (error) {
+                console.error("Polling error", error);
+            }
+        };
+
+        const interval = setInterval(pollActiveChat, pollRate);
+        return () => clearInterval(interval);
+    }, [activeConversation, decryptE2EMessage, isConnected]);
+
     // ─── Restore chat from URL ─────────────────────
 
     useEffect(() => {
