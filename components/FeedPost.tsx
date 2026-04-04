@@ -122,6 +122,10 @@ export default function FeedPost({
     }, [post.mediaType]);
 
     const toggleLike = async () => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
         const newLiked = !isLiked;
         setIsLiked(newLiked);
         setLikeCount(newLiked ? likeCount + 1 : likeCount - 1);
@@ -136,6 +140,10 @@ export default function FeedPost({
     };
 
     const toggleSave = async () => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
         const newSaved = !isSaved;
         setIsSaved(newSaved);
         try {
@@ -148,6 +156,10 @@ export default function FeedPost({
     };
 
     const submitComment = async () => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
         if (!commentText.trim() || isSubmitting) return;
         setIsSubmitting(true);
         try {

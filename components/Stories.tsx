@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
+import { useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Story {
@@ -26,6 +27,7 @@ interface StoryGroup {
 
 export default function Stories() {
     const { user } = useAuth();
+    const router = useRouter();
     const { showToast } = useNotification();
     const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
     const [loading, setLoading] = useState(true);
@@ -165,7 +167,7 @@ export default function Stories() {
         <>
             <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide animate-fade-in">
                 {/* Add Story */}
-                <div className="flex flex-col items-center gap-1.5 min-w-[72px] cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+                <div className="flex flex-col items-center gap-1.5 min-w-[72px] cursor-pointer group" onClick={() => user ? fileInputRef.current?.click() : router.push('/login')}>
                     <div className="relative w-[68px] h-[68px] rounded-full p-[2px] border-2 border-white/[0.08] group-hover:border-accent-primary/50 transition-all duration-200">
                         <div className="w-full h-full rounded-full overflow-hidden relative bg-bg-surface">
                             <Image src={user?.avatarUrl || "/default_avatar.svg"} alt="Add Story" fill className="object-cover opacity-70 group-hover:opacity-90 transition-opacity" unoptimized />
