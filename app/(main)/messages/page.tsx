@@ -540,11 +540,12 @@ export default function MessagesPage() {
 
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (!inputText.trim() || !activeConversation || sending) return;
+        if (!inputText.trim() || !activeConversation) return;
 
         const msgText = inputText.trim();
-        const tempId = Date.now();
-        setSending(true);
+        const tempId = Date.now() + Math.floor(Math.random() * 1000);
+        
+        // Immediately unlock the input for the next message
         setInputText("");
         if (textareaRef.current) textareaRef.current.style.height = "auto";
 
@@ -629,7 +630,7 @@ export default function MessagesPage() {
                 m.id === tempId ? { ...m, status: "sent" as MessageStatus } : m
             ));
         } finally {
-            setSending(false);
+            // No longer locking the whole UI
             textareaRef.current?.focus();
         }
     };
