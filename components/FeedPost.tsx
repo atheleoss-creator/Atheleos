@@ -15,6 +15,7 @@ import {
 import { HeartIcon as HeartIconSolid, BookmarkIcon as BookmarkIconSolid } from "@heroicons/react/24/solid";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
+import LikesModal from "@/components/LikesModal";
 
 interface Post {
     id: number;
@@ -53,6 +54,7 @@ export default function FeedPost({
     const [commentCount, setCommentCount] = useState(post.comments);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
+    const [showLikesModal, setShowLikesModal] = useState(false);
     
     // Action states
     const [showMenu, setShowMenu] = useState(false);
@@ -368,14 +370,22 @@ export default function FeedPost({
             {/* Actions */}
             <div className="px-4 py-3 flex justify-between items-center">
                 <div className="flex gap-3">
-                    <button onClick={toggleLike} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
-                        {isLiked ? (
-                            <HeartIconSolid className="w-7 h-7 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                    <div className="flex items-center gap-1.5">
+                        <button onClick={toggleLike} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center group">
+                            {isLiked ? (
+                                <HeartIconSolid className="w-7 h-7 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                            ) : (
+                                <HeartIcon className="w-7 h-7 text-white group-hover:text-red-400 transition-colors" />
+                            )}
+                        </button>
+                        {likeCount > 0 ? (
+                            <button onClick={() => setShowLikesModal(true)} className="font-bold text-[13px] select-none text-white hover:underline transition-all">
+                                {likeCount.toLocaleString()}
+                            </button>
                         ) : (
-                            <HeartIcon className="w-7 h-7 text-white group-hover:text-red-400 transition-colors" />
+                            <span className="font-bold text-[13px] select-none text-white">{likeCount.toLocaleString()}</span>
                         )}
-                        <span className="font-bold text-[13px] select-none text-white">{likeCount.toLocaleString()}</span>
-                    </button>
+                    </div>
 
                     <button onClick={() => router.push(`/post/${post.id}`)} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
                         <ChatBubbleOvalLeftIcon className="w-7 h-7 text-white group-hover:text-accent-primary transition-colors" />
@@ -449,6 +459,12 @@ export default function FeedPost({
                     Post
                 </button>
             </div>
+
+            <LikesModal
+                postId={post.id}
+                isOpen={showLikesModal}
+                onClose={() => setShowLikesModal(false)}
+            />
         </div>
     );
 }
