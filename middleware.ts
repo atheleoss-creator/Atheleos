@@ -12,11 +12,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/verification');
 
-  // Allow unauthenticated access to home page
-  const isPublicPageRoute = pathname === '/';
-  
   // Public APIs that should not trigger redirects
-  const isPublicApiRoute = pathname.startsWith('/api/auth') || pathname.startsWith('/api/posts') || pathname.startsWith('/api/stories');
+  const isPublicApiRoute = pathname.startsWith('/api/auth');
 
   // Skip middleware for public API routes
   if (isPublicApiRoute) {
@@ -31,7 +28,7 @@ export function middleware(request: NextRequest) {
   }
 
   // If user is NOT logged in and tries to access a protected route
-  if (!token && !isAuthRoute && !isPublicPageRoute) {
+  if (!token && !isAuthRoute) {
     if (pathname.startsWith('/api')) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
