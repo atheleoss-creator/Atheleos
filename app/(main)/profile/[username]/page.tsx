@@ -456,11 +456,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                     <>
                                         {post.media_type === 'video' ? (
                                             <video
-                                                src={post.media_url}
+                                                src={`${post.media_url}#t=0.001`}
                                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                 muted
                                                 loop
                                                 playsInline
+                                                preload="metadata"
                                                 onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
                                                 onMouseLeave={(e) => {
                                                     e.currentTarget.pause();
@@ -651,11 +652,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                     <Link key={post.id} href={`/post/${post.id}`} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors block">
                                         {post.media_type === 'video' ? (
                                             <video 
-                                                src={post.media_url} 
+                                                src={`${post.media_url}#t=0.001`}
                                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                                                 muted 
                                                 loop 
                                                 playsInline 
+                                                preload="metadata"
                                                 onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
                                                 onMouseLeave={(e) => {
                                                     e.currentTarget.pause();

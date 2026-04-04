@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
 import Badge from "@/components/Badge";
+import LikesModal from "@/components/LikesModal";
 import {
     HeartIcon,
     ChatBubbleOvalLeftIcon,
@@ -82,6 +83,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     // Menu
     const [showMenu, setShowMenu] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Likes Modal
+    const [showLikesModal, setShowLikesModal] = useState(false);
 
     // Double-tap
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
@@ -405,14 +409,20 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 {/* Actions Bar */}
                 <div className="px-4 py-3 flex justify-between items-center">
                     <div className="flex gap-3">
-                        <button onClick={toggleLike} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
-                            {isLiked ? (
-                                <HeartIconSolid className="w-7 h-7 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                            ) : (
-                                <HeartIcon className="w-7 h-7 text-white group-hover:text-red-400 transition-colors" />
+                        <div className="inline-flex items-center gap-1.5">
+                            <button onClick={toggleLike} className="transition-transform active:scale-75 hover:scale-110 p-0.5 group">
+                                {isLiked ? (
+                                    <HeartIconSolid className="w-7 h-7 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                                ) : (
+                                    <HeartIcon className="w-7 h-7 text-white group-hover:text-red-400 transition-colors" />
+                                )}
+                            </button>
+                            {likeCount > 0 && (
+                                <button onClick={() => setShowLikesModal(true)} className="font-bold text-[13px] text-white hover:underline transition-all active:scale-95 select-none">
+                                    {likeCount.toLocaleString()} {likeCount === 1 ? 'like' : 'likes'}
+                                </button>
                             )}
-                            <span className="font-bold text-[13px] select-none text-white">{likeCount.toLocaleString()}</span>
-                        </button>
+                        </div>
 
                         <button onClick={() => commentInputRef.current?.focus()} className="transition-transform active:scale-75 hover:scale-110 p-0.5 inline-flex items-center gap-1.5 group">
                             <ChatBubbleOvalLeftIcon className="w-7 h-7 text-white group-hover:text-accent-primary transition-colors" />
@@ -548,6 +558,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                 </div>
             </div>
+
+            <LikesModal
+                postId={post.id}
+                isOpen={showLikesModal}
+                onClose={() => setShowLikesModal(false)}
+            />
         </div>
     );
 }

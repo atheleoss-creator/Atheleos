@@ -112,10 +112,9 @@ export default function ExplorePage() {
         }
     };
 
-    // Masonry pattern: [1=normal, 2=tall, 3=wide]
+    // All boxes should be identical uniform squares
     const getGridPattern = (index: number) => {
-        const patterns = [1, 1, 2, 1, 3, 1, 1, 1, 2, 1, 1, 3];
-        return patterns[index % patterns.length];
+        return 1;
     };
 
     // Filter results by tab
@@ -366,7 +365,7 @@ export default function ExplorePage() {
                                                     {post.media_url && (
                                                         <div className="w-14 h-14 rounded-lg overflow-hidden relative shrink-0 bg-bg-surface">
                                                             {post.media_type === 'video' ? (
-                                                                <video src={post.media_url} className="absolute inset-0 w-full h-full object-cover" muted loop playsInline />
+                                                                <video src={`${post.media_url}#t=0.001`} preload="metadata" className="absolute inset-0 w-full h-full object-cover" muted loop playsInline />
                                                             ) : (
                                                                 <Image src={post.media_url} alt="" fill className="object-cover" unoptimized />
                                                             )}
@@ -402,11 +401,7 @@ export default function ExplorePage() {
                                 return (
                                     <div
                                         key={i}
-                                        className={`skeleton ${
-                                            pattern === 2 ? "row-span-2 aspect-[1/2]" :
-                                            pattern === 3 ? "col-span-2 aspect-[2/1]" :
-                                            "aspect-square"
-                                        }`}
+                                        className="skeleton aspect-square"
                                     />
                                 );
                             })}
@@ -439,26 +434,18 @@ export default function ExplorePage() {
                                     <div
                                         key={post.id}
                                         onClick={() => router.push(`/post/${post.id}`)}
-                                        className={`relative bg-bg-surface overflow-hidden group cursor-pointer ${
-                                            isTall ? "row-span-2" :
-                                            isWide ? "col-span-2" :
-                                            ""
-                                        } ${
-                                            isTall ? "aspect-auto" :
-                                            isWide ? "aspect-[2/1]" :
-                                            "aspect-square"
-                                        }`}
-                                        style={isTall ? { minHeight: 0 } : undefined}
+                                        className="relative bg-bg-surface overflow-hidden group cursor-pointer aspect-square"
                                     >
                                         {post.mediaUrl ? (
                                             <>
                                                 {post.mediaType === 'video' ? (
                                                     <video
-                                                        src={post.mediaUrl}
+                                                        src={`${post.mediaUrl}#t=0.001`}
                                                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                         muted
                                                         loop
                                                         playsInline
+                                                        preload="metadata"
                                                         onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
                                                         onMouseLeave={(e) => {
                                                             e.currentTarget.pause();
@@ -472,7 +459,7 @@ export default function ExplorePage() {
                                                         fill
                                                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                                                         unoptimized
-                                                        sizes={isWide ? "66vw" : "33vw"}
+                                                        sizes="33vw"
                                                     />
                                                 )}
                                                 {/* Video badge */}

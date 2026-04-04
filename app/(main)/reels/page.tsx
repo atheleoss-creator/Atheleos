@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
 import Badge from "@/components/Badge";
+import LikesModal from "@/components/LikesModal";
 
 export default function ReelsPage() {
     const router = useRouter();
@@ -139,6 +140,9 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
     const [isMuted, setIsMuted] = useState(false);
     const [isLiked, setIsLiked] = useState(!!data.isLiked);
     const [likeCount, setLikeCount] = useState(data.likes || 0);
+
+    // Likes Modal
+    const [showLikesModal, setShowLikesModal] = useState(false);
     const [isSaved, setIsSaved] = useState(!!data.isSaved);
     const [showPlayIcon, setShowPlayIcon] = useState(false);
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
@@ -459,14 +463,22 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
             {/* Action sidebar */}
             <div className="absolute bottom-[82px] md:bottom-5 right-2 flex flex-col items-center gap-5 z-10 w-[60px]">
                 {/* Like */}
-                <button onClick={toggleLike} className="flex flex-col items-center gap-1 active:scale-75 transition-transform">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all ${isLiked ? 'bg-red-500/20 border border-red-500/30' : 'bg-black/30 border border-white/15'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke={isLiked ? "none" : "white"} strokeWidth="2" className={`w-6 h-6 transition-colors ${isLiked ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'text-white'}`}>
-                            <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
-                        </svg>
-                    </div>
-                    <span className="text-white text-[12px] font-bold drop-shadow-lg">{formatNumber(likeCount)}</span>
-                </button>
+                <div className="flex flex-col items-center gap-1">
+                    <button onClick={toggleLike} className="active:scale-75 transition-transform">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all ${isLiked ? 'bg-red-500/20 border border-red-500/30' : 'bg-black/30 border border-white/15'}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke={isLiked ? "none" : "white"} strokeWidth="2" className={`w-6 h-6 transition-colors ${isLiked ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'text-white'}`}>
+                                <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+                            </svg>
+                        </div>
+                    </button>
+                    {likeCount > 0 ? (
+                        <button onClick={() => setShowLikesModal(true)} className="text-white text-[12px] font-bold drop-shadow-lg hover:underline transition-all">
+                            {formatNumber(likeCount)}
+                        </button>
+                    ) : (
+                        <span className="text-white text-[12px] font-bold drop-shadow-lg">{formatNumber(likeCount)}</span>
+                    )}
+                </div>
 
                 {/* Comment */}
                 <button onClick={openComments} className="flex flex-col items-center gap-1 active:scale-75 transition-transform">
@@ -604,6 +616,12 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
                     </div>
                 </div>
             )}
+
+            <LikesModal
+                postId={data.id}
+                isOpen={showLikesModal}
+                onClose={() => setShowLikesModal(false)}
+            />
         </div>
     );
 }
