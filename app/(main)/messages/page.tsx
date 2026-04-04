@@ -215,6 +215,11 @@ export default function MessagesPage() {
                         status: m.is_read ? "seen" : "sent",
                     }));
                     
+                    // Consume HTTP typing indicator
+                    if (data.otherUser) {
+                        setOtherUserTyping(!!data.otherUser.isTyping);
+                    }
+                    
                     setMessages(prev => {
                         // Keep any messages that are currently "sending" since they aren't in the DB yet
                         const sendingMessages = prev.filter(m => m.status === "sending");
@@ -496,11 +501,14 @@ export default function MessagesPage() {
         const ac = activeConvoRef.current;
         if (!ac || typeof ac.conversationId === 'string') return;
 
-        // Throttle: don't send more than once per second
+        // Throttle: don't send more than once per second to avoid spamming the DB
         const now = Date.now();
-        if (now - lastTypingEmit.current < 1000) return;
+        if (now - lastTypingEmit.current < 2000) return;
         lastTypingEmit.current = now;
 
+        // HTTP Fallback Typing Indicator
+        fetch(`/api/messages/${ac.conversationId}/typing`, { method: 'POST' }).catch(() => {});
+        
         if (socket && isConnected) {
              socket.emit("typing", {
                  recipientId: ac.userId,

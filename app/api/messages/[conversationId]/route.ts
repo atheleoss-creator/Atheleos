@@ -53,16 +53,43 @@ export async function GET(req: Request, { params }: { params: Promise<{ conversa
     );
 
     // Get the other participant's info
-    const otherUser: any = await query(`
-      SELECT u.id, u.username, u.full_name, u.avatar_url, u.public_key
-      FROM conversation_participants cp
-      JOIN users u ON cp.user_id = u.id
-      WHERE cp.conversation_id = ? AND cp.user_id != ?
-    `, [conversationId, userId]);
+    let otherUser: any;
+    try {
+        otherUser = await query(`
+          SELECT u.id, u.username, u.full_name, u.avatar_url, u.public_key, cp.last_typing_at
+          FROM conversation_participants cp
+          JOIN users u ON cp.user_id = u.id
+          WHERE cp.conversation_id = ? AND cp.user_id != ?
+        `, [conversationId, userId]);
+    } catch (err: any) {
+        // Automatically run database migration if column doesn't exist on standard Hostinger deployment
+        if (err.code === 'ER_BAD_FIELD_ERROR' || err.message?.includes("Unknown column")) {
+            await query(`ALTER TABLE conversation_participants ADD COLUMN last_typing_at DATETIME NULL`);
+            otherUser = await query(`
+              SELECT u.id, u.username, u.full_name, u.avatar_url, u.public_key, cp.last_typing_at
+              FROM conversation_participants cp
+              JOIN users u ON cp.user_id = u.id
+              WHERE cp.conversation_id = ? AND cp.user_id != ?
+            `, [conversationId, userId]);
+        } else {
+            throw err;
+        }
+    }
+
+    // Calculate if the other user is typing (HTTP fallback typing indicator)
+    let isTyping = false;
+    if (otherUser[0] && otherUser[0].last_typing_at) {
+        const lastTyped = new Date(otherUser[0].last_typing_at).getTime();
+        const now = Date.now();
+        // If they typed within the last 5 seconds, they are considered active
+        if (now - lastTyped < 5000) {
+            isTyping = true;
+        }
+    }
 
     return NextResponse.json({ 
       messages, 
-      otherUser: otherUser[0] || null 
+      otherUser: otherUser.length > 0 ? { ...otherUser[0], isTyping } : null 
     }, { status: 200 });
   } catch (error) {
     console.error('Fetch Messages Error:', error);
