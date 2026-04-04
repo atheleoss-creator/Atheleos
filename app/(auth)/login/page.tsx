@@ -26,7 +26,15 @@ export default function LoginPage() {
             if (!res.ok) {
                 if (data.requiresVerification) { 
                     setRequiresOtp(true); 
-                    if (data.email) setActualEmail(data.email);
+                    if (data.email) {
+                        setActualEmail(data.email);
+                        // Automatically send a fresh OTP so the user doesn't get stuck
+                        await fetch('/api/auth/send-otp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: data.email })
+                        }).catch(console.error);
+                    }
                     return; 
                 }
                 throw new Error(data.error || 'Login failed');
@@ -54,6 +62,27 @@ export default function LoginPage() {
             window.location.href = '/';
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Verification failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const res = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: actualEmail || identifier })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to resend OTP');
+            // Show a simple success mechanism (could use toast, using alert/error for now)
+            setError('');
+            alert('A new OTP has been sent to your email.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to resend');
         } finally {
             setLoading(false);
         }
@@ -213,10 +242,15 @@ export default function LoginPage() {
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : 'Verify & Continue'}
                                 </span>
-                            </button>
-                            <button type="button" onClick={() => setRequiresOtp(false)} className="text-sm text-text-secondary hover:text-white transition-colors">
-                                ← Back to login
-                            </button>
+                                </button>
+                            <div className="flex items-center justify-between mt-2">
+                                <button type="button" onClick={handleResendOtp} disabled={loading} className="text-sm text-accent-primary hover:text-white transition-colors font-semibold">
+                                    Resend Code
+                                </button>
+                                <button type="button" onClick={() => setRequiresOtp(false)} className="text-sm text-text-secondary hover:text-white transition-colors">
+                                    ← Back to login
+                                </button>
+                            </div>
                         </form>
                     </div>
                 )}
