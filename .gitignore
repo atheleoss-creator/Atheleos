@@ -11,8 +11,8 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+# next.js — .next is INCLUDED in git for Hostinger deployment
+# /.next/
 /out/
 
 # production
@@ -49,3 +49,6 @@ public/uploads/*
 db_output.json
 versions.json
 page.html
+
+# Next.js cache (not needed in git, will be rebuilt)
+/.next/cache/
