@@ -78,50 +78,61 @@ export default function Navbar() {
                         <NavItem href="/notifications" icon={<NotificationsIcon className="w-[22px] h-[22px]" />} active={pathname === "/notifications"} label="Alerts" />
 
                         <div className="relative ml-1.5" ref={menuRef}>
-                            <button 
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="group block focus:outline-none"
-                            >
-                                <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname?.startsWith("/profile")
-                                    ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.3)]"
-                                    : "ring-white/10 group-hover:ring-accent-primary/50"
-                                    }`}>
-                                    <Image
-                                        src={user?.avatarUrl || "/default_avatar.svg"}
-                                        alt="Profile"
-                                        width={36}
-                                        height={36}
-                                        className="w-full h-full object-cover"
-                                        unoptimized
-                                    />
-                                </div>
-                            </button>
-                            
-                            {isMenuOpen && (
-                                <div className="absolute top-12 right-0 w-48 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 flex flex-col animate-fade-in py-1">
-                                    <Link 
-                                        href={user?.username ? `/profile/${user.username}` : '#'}
-                                        onClick={() => setIsMenuOpen(false)}
-                                        className="px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-3"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-text-secondary">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                        </svg>
-                                        Profile
-                                    </Link>
+                            {user ? (
+                                <>
                                     <button 
-                                        onClick={() => {
-                                            setIsMenuOpen(false);
-                                            logout();
-                                        }}
-                                        className="px-4 py-3 text-sm text-red-500 hover:bg-white/10 transition-colors flex items-center gap-3 text-left w-full"
+                                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                        className="group block focus:outline-none"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                                        </svg>
-                                        Logout
+                                        <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all duration-200 ${pathname?.startsWith("/profile")
+                                            ? "ring-accent-primary shadow-[0_0_12px_rgba(0,212,255,0.3)]"
+                                            : "ring-white/10 group-hover:ring-accent-primary/50"
+                                            }`}>
+                                            <Image
+                                                src={user.avatarUrl || "/default_avatar.svg"}
+                                                alt="Profile"
+                                                width={36}
+                                                height={36}
+                                                className="w-full h-full object-cover"
+                                                unoptimized
+                                            />
+                                        </div>
                                     </button>
-                                </div>
+                                    
+                                    {isMenuOpen && (
+                                        <div className="absolute top-12 right-0 w-48 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 flex flex-col animate-fade-in py-1">
+                                            <Link 
+                                                href={`/profile/${user.username}`}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-3"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-text-secondary">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                </svg>
+                                                Profile
+                                            </Link>
+                                            <button 
+                                                onClick={() => {
+                                                    setIsMenuOpen(false);
+                                                    logout();
+                                                }}
+                                                className="px-4 py-3 text-sm text-red-500 hover:bg-white/10 transition-colors flex items-center gap-3 text-left w-full"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                                </svg>
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <Link 
+                                    href="/login" 
+                                    className="ml-2 bg-gradient-to-r from-accent-primary to-accent-secondary text-white px-5 py-2 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:scale-105 transition-transform"
+                                >
+                                    Log In
+                                </Link>
                             )}
                         </div>
                     </div>
@@ -168,7 +179,7 @@ export default function Navbar() {
                         <button 
                             onClick={(e) => {
                                 if (!isMobileMenuOpen) {
-                                    router.push(user?.username ? `/profile/${user.username}` : '#');
+                                    router.push(user?.username ? `/profile/${user.username}` : '/login');
                                 }
                             }}
                             onTouchStart={handleTouchStart}
