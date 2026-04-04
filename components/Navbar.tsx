@@ -58,9 +58,7 @@ export default function Navbar() {
                 <div className="w-full max-w-[1400px] mx-auto px-6 flex justify-between items-center h-full">
                     {/* Brand */}
                     <Link href="/" className="flex items-center gap-2 group">
-                        <span className="text-[22px] font-black tracking-[0.25em] text-transparent bg-gradient-to-r from-accent-primary via-white to-accent-secondary bg-clip-text uppercase select-none">
-                            ATHELEOS
-                        </span>
+                        <Image src="/atheleos.svg" alt="Atheleos" width={140} height={32} className="h-7 w-auto object-contain select-none" unoptimized />
                     </Link>
 
                     {/* Center Nav Icons */}
@@ -146,8 +144,8 @@ export default function Navbar() {
                         <NotificationsIcon className="w-6 h-6" />
                     </Link>
 
-                    <Link href="/" className="text-[18px] font-black tracking-[0.25em] text-transparent bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text uppercase select-none">
-                        ATHELEOS
+                    <Link href="/" className="flex items-center">
+                        <Image src="/atheleos.svg" alt="Atheleos" width={120} height={28} className="h-6 w-auto object-contain select-none" unoptimized />
                     </Link>
 
                     <div className="flex gap-1 items-center">

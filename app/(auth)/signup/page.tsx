@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function SignupPage() {
     const [step, setStep] = useState<"details" | "otp">("details");
@@ -115,15 +116,8 @@ export default function SignupPage() {
 
                 {step === "details" ? (
                     <>
-                        <div className="text-center mb-8">
-                            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-secondary mb-4 shadow-[0_0_25px_rgba(0,212,255,0.3)]">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-white">
-                                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-accent-primary to-accent-secondary mb-2 uppercase tracking-wider">
-                                Join Atheleos
-                            </h1>
+                        <div className="text-center mb-8 flex flex-col items-center">
+                            <Image src="/atheleos.svg" alt="Atheleos Logo" width={240} height={60} className="w-auto h-10 md:h-12 mb-4 select-none drop-shadow-[0_0_15px_rgba(0,212,255,0.2)]" unoptimized />
                             <p className="text-text-secondary text-sm">Create your premium sports profile.</p>
                         </div>
 

@@ -21,6 +21,10 @@ const grandHotel = Grand_Hotel({
 export const metadata: Metadata = {
   title: "Atheleos - Premium Sports Social Network",
   description: "Join the elite sports community.",
+  icons: {
+    icon: "/atheleos.svg",
+    apple: "/atheleos.jpeg",
+  }
 };
 
 export default function RootLayout({
