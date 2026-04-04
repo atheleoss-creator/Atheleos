@@ -53,9 +53,16 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     // Don't create a second socket if one is already open for this user
     if (socketRef.current?.connected) return;
 
-    // If we've already failed multiple times (server.js not running), stop trying
+    // If we've already failed multiple times, stop trying
     if (failCountRef.current >= 3) return;
 
+    // IMPORTANT: Since the app is running on Hostinger without server.js,
+    // WebSockets are unsupported. We actively bypass the connection logic
+    // to prevent continuous 404 Not Found errors in the browser console.
+    // The application will automatically rely on the HTTP polling fallback we built.
+    return;
+
+    /*
     const socketInstance = io(window.location.origin, {
       path: "/socket.io/",
       transports: ["polling", "websocket"],
@@ -113,8 +120,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       });
     });
 
+    */
+
     return () => {
+      /*
       socketInstance.disconnect();
+      */
       socketRef.current = null;
       setSocket(null);
       setIsConnected(false);

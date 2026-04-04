@@ -216,24 +216,35 @@ export default function MessagesPage() {
                     }));
                     
                     setMessages(prev => {
+                        // Keep any messages that are currently "sending" since they aren't in the DB yet
+                        const sendingMessages = prev.filter(m => m.status === "sending");
+                        
+                        // Check if incoming msgs somehow already contains our sending message (rare race condition)
+                        // This prevents duplicates if DB catches it instantly but frontend is still resolving the POST
+                        const safeSending = sendingMessages.filter(sm => 
+                            !msgs.some((m: any) => m.content === sm.content && Math.abs(new Date(m.created_at).getTime() - new Date(sm.created_at).getTime()) < 5000)
+                        );
+                        
+                        const combinedMsgs = [...msgs, ...safeSending];
+
                         // Check if we actually have new data
-                        if (msgs.length === prev.length) {
+                        if (combinedMsgs.length === prev.length) {
                             // Check if last message status changed (e.g. read receipts)
                             const lastPrev = prev[prev.length - 1];
-                            const lastNew = msgs[msgs.length - 1];
+                            const lastNew = combinedMsgs[combinedMsgs.length - 1];
                             if (lastPrev?.status === lastNew?.status && lastPrev?.is_read === lastNew?.is_read) {
                                 return prev; 
                             }
                         }
                         
                         // If it changed, see if we need to auto-scroll
-                        const hasNewMessage = msgs.length > prev.length;
+                        const hasNewMessage = combinedMsgs.length > prev.length;
                         if (hasNewMessage) {
                             setTimeout(() => {
                                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
                             }, 100);
                         }
-                        return msgs;
+                        return combinedMsgs;
                     });
                 }
             } catch (error) {
