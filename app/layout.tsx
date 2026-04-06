@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import NotificationToast from "@/components/NotificationToast";
+import { Analytics } from '@vercel/analytics/next';
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -48,6 +49,7 @@ export default function RootLayout({
             </NotificationProvider>
           </SocketProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
