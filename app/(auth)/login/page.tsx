@@ -109,7 +109,7 @@ export default function LoginPage() {
                 
                 {/* Logo */}
                 <div className="text-center mb-10 flex flex-col items-center">
-                    <Image src="/atheleos.svg" alt="Atheleos Logo" width={240} height={60} className="w-auto h-12 md:h-14 mb-4 select-none drop-shadow-[0_0_15px_rgba(0,212,255,0.2)]" unoptimized />
+                    <Image src="/atheleos.svg" alt="Atheleos Logo" width={240} height={60} className="w-auto h-12 md:h-14 mb-4 object-contain select-none drop-shadow-[0_0_15px_rgba(0,212,255,0.2)]" unoptimized />
                     <p className="text-text-secondary text-sm font-medium">
                         {requiresOtp ? 'One more step to verify your identity' : 'The arena awaits. Sign in to compete.'}
                     </p>

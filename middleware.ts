@@ -5,6 +5,11 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('atheleos_token')?.value;
   const { pathname } = request.nextUrl;
 
+  // Public routes that don't require login
+  const isPublicRoute =
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terms');
+
   // Auth routes that don't require login
   const isAuthRoute =
     pathname.startsWith('/login') ||
@@ -28,7 +33,7 @@ export function middleware(request: NextRequest) {
   }
 
   // If user is NOT logged in and tries to access a protected route
-  if (!token && !isAuthRoute) {
+  if (!token && !isAuthRoute && !isPublicRoute) {
     if (pathname.startsWith('/api')) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
