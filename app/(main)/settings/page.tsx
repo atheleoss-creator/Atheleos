@@ -143,6 +143,7 @@ export default function SettingsPage() {
         { section: "Who can see your content", label: "Messages and story replies", key: "messages" },
         { section: "More info and support", label: "Help", key: "help" },
         { section: "More info and support", label: "About", key: "about" },
+        { section: "More info and support", label: "Child Safety", key: "childsafety" },
         { section: "Login", label: "Add account", key: "addaccount" },
         { section: "Login", label: "Log out", key: "logout" },
     ], []);
@@ -241,6 +242,7 @@ export default function SettingsPage() {
                 <SectionHeader title="More info and support" hidden={!isSectionVisible("More info and support")} />
                 <MenuItem icon={<InsightsIcon className="w-6 h-6" />} label="Help" href="/help" hidden={!isVisible("help")} />
                 <MenuItem icon={<UserCircleIcon className="w-6 h-6" />} label="About" href="/about" hidden={!isVisible("about")} />
+                <MenuItem icon={<BadgeIcon className="w-6 h-6" />} label="Child Safety Policy" href="/child-safety" hidden={!isVisible("childsafety")} />
 
                 {/* Login */}
                 <SectionHeader title="Login" hidden={!isSectionVisible("Login")} />
