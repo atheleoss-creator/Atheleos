@@ -132,6 +132,7 @@ export default function SettingsPage() {
     // Define all menu items for search filtering
     const menuItems = useMemo(() => [
         { section: "Your account", label: "Accounts Center", subLabel: "Password, security, personal details", key: "accounts" },
+        { section: "Your account", label: "Delete account", subLabel: "Permanently delete your data", key: "deleteaccount" },
         { section: "How you use Atheleos", label: "Saved", key: "saved" },
         { section: "How you use Atheleos", label: "Archive", key: "archive" },
         { section: "How you use Atheleos", label: "Your activity", key: "activity" },
@@ -208,6 +209,13 @@ export default function SettingsPage() {
                         <ArrowRightIcon className="w-5 h-5 text-text-tertiary" />
                     </div>
                 )}
+                <MenuItem
+                    icon={<ArchiveIcon className="w-6 h-6" />}
+                    label="Delete account"
+                    href="/settings/delete-account"
+                    isRed
+                    hidden={!isVisible("deleteaccount")}
+                />
 
                 {/* How you use Atheleos */}
                 <SectionHeader title="How you use Atheleos" hidden={!isSectionVisible("How you use Atheleos")} />
