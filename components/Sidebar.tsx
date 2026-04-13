@@ -131,7 +131,7 @@ export default function Sidebar() {
                         <Link href="/privacy" className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Privacy</Link>
                         <Link href="/terms" className="hover:underline cursor-pointer hover:text-text-secondary transition-colors">Terms</Link>
                     </div>
-                    <span>© 2024 ATHELEOS</span>
+                    <span>© 2026 ATHELEOS</span>
                 </div>
             </div>
 
