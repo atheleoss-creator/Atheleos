@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
 import Badge from "@/components/Badge";
 import LikesModal from "@/components/LikesModal";
+import ShareModal from "@/components/ShareModal";
 
 export default function ReelsPage() {
     const router = useRouter();
@@ -143,6 +144,7 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
 
     // Likes Modal
     const [showLikesModal, setShowLikesModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [isSaved, setIsSaved] = useState(!!data.isSaved);
     const [showPlayIcon, setShowPlayIcon] = useState(false);
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
@@ -252,21 +254,8 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
     };
 
     // Share
-    const handleShare = async () => {
-        const url = `${window.location.origin}/post/${data.id}`;
-        try {
-            if (navigator.share) {
-                await navigator.share({ title: `Reel by @${data.username}`, url });
-            } else {
-                await navigator.clipboard.writeText(url);
-                showToast("success", "Link copied!", "Reel URL copied to clipboard");
-            }
-        } catch {
-            try {
-                await navigator.clipboard.writeText(url);
-                showToast("success", "Link copied!");
-            } catch {/* silent */}
-        }
+    const handleShare = () => {
+        setShowShareModal(true);
     };
 
     // Open comments drawer
@@ -621,6 +610,11 @@ function ReelItem({ data, isActive }: { data: any; isActive: boolean }) {
                 postId={data.id}
                 isOpen={showLikesModal}
                 onClose={() => setShowLikesModal(false)}
+            />
+            <ShareModal
+                postId={data.id}
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
             />
         </div>
     );

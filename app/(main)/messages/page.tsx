@@ -7,6 +7,7 @@ import { ArrowLeftIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { format, isToday, isYesterday, formatDistanceToNow } from "date-fns";
+import SharedPostCard from "@/components/SharedPostCard";
 
 // ─── Types ───────────────────────────────────────
 
@@ -1000,7 +1001,11 @@ export default function MessagesPage() {
                                         {chat.full_name || chat.username}
                                     </h3>
                                     <p className={`text-[13px] truncate ${chat.unreadCount > 0 ? 'font-semibold text-white' : 'text-text-tertiary'}`}>
-                                        {chat.lastMessage || "No messages yet — say hi! 👋"}
+                                        {(() => {
+                                            if (!chat.lastMessage) return "No messages yet — say hi! 👋";
+                                            if (chat.lastMessage.match(/(?:https?:\/\/[^\s]+)?\/post\/\d+/)) return "Shared a post ✈️";
+                                            return chat.lastMessage;
+                                        })()}
                                     </p>
                                 </div>
                             </div>
@@ -1140,20 +1145,41 @@ export default function MessagesPage() {
                                     )}
 
                                     <div className={`flex flex-col max-w-[72%] ${isMe ? 'items-end' : 'items-start'}`}>
-                                        <div
-                                            className={`px-3.5 py-2 text-[15px] leading-relaxed ${
-                                                isMe
-                                                    ? `bg-gradient-to-br from-accent-primary to-accent-secondary text-white shadow-[0_2px_8px_rgba(0,212,255,0.15)] ${
-                                                        isFirstInGroup ? 'rounded-2xl rounded-br-md' : isLastInGroup ? 'rounded-2xl rounded-tr-md' : 'rounded-xl rounded-r-md'
-                                                    }`
-                                                    : `bg-white/[0.06] border border-white/[0.06] text-white ${
-                                                        isFirstInGroup ? 'rounded-2xl rounded-bl-md' : isLastInGroup ? 'rounded-2xl rounded-tl-md' : 'rounded-xl rounded-l-md'
-                                                    }`
-                                            }`}
-                                            style={{ wordBreak: 'break-word' }}
-                                        >
-                                            {linkify(msg.content)}
-                                        </div>
+                                        {(() => {
+                                            const postMatch = msg.content.match(/(?:https?:\/\/[^\s]+)?\/post\/(\d+)/);
+                                            const cleanText = postMatch 
+                                                ? msg.content.replace(/Check out this post:\s*/ig, "").replace(/https?:\/\/[^\s]+\/post\/\d+/ig, "").trim()
+                                                : msg.content;
+                                            const postId = postMatch ? parseInt(postMatch[1], 10) : null;
+
+                                            const bubbleClasses = isMe
+                                                ? `bg-gradient-to-br from-accent-primary to-accent-secondary text-white shadow-[0_2px_8px_rgba(0,212,255,0.15)] ${
+                                                    isFirstInGroup ? 'rounded-2xl rounded-br-md' : isLastInGroup ? 'rounded-2xl rounded-tr-md' : 'rounded-xl rounded-r-md'
+                                                }`
+                                                : `bg-white/[0.06] border border-white/[0.06] text-white ${
+                                                    isFirstInGroup ? 'rounded-2xl rounded-bl-md' : isLastInGroup ? 'rounded-2xl rounded-tl-md' : 'rounded-xl rounded-l-md'
+                                                }`;
+
+                                            if (postId && !cleanText) {
+                                                return (
+                                                    <div className="my-0.5">
+                                                        <SharedPostCard postId={postId} />
+                                                    </div>
+                                                );
+                                            }
+
+                                            return (
+                                                <div
+                                                    className={`px-3.5 py-2 text-[15px] leading-relaxed ${bubbleClasses}`}
+                                                    style={{ wordBreak: 'break-word' }}
+                                                >
+                                                    <div>
+                                                        {linkify(cleanText)}
+                                                        {postId && <SharedPostCard postId={postId} />}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {isLastInGroup && (
                                             <div className={`flex items-center gap-1.5 mt-1 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>

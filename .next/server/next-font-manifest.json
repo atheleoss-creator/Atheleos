@@ -1,0 +1,107 @@
+{
+  "app": {
+    "[project]/app/(auth)/forgot-password/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(auth)/login/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(auth)/signup/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(auth)/verification/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/about/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/activity/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/child-safety/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/create-post/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/edit-profile/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/events/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/explore/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/help/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/messages/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/notifications/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/post/[id]/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/privacy/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/profile/[username]/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/profile/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/reels/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/saved/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/settings/delete-account/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/settings/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/terms/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/_not-found/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

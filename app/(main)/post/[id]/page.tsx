@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
 import Badge from "@/components/Badge";
 import LikesModal from "@/components/LikesModal";
+import ShareModal from "@/components/ShareModal";
 import {
     HeartIcon,
     ChatBubbleOvalLeftIcon,
@@ -86,6 +87,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
     // Likes Modal
     const [showLikesModal, setShowLikesModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Double-tap
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
@@ -214,22 +216,18 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     };
 
     // Share
-    const handleShare = async () => {
-        const url = `${window.location.origin}/post/${postId}`;
+    const handleShare = () => {
+        setShowShareModal(true);
+    };
+
+    const handleCopyLink = async () => {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const url = `${baseUrl}/post/${postId}`;
         try {
-            if (navigator.share) {
-                await navigator.share({ title: `Post by ${post?.username}`, url });
-            } else {
-                await navigator.clipboard.writeText(url);
-                showToast("success", "Link copied!", "Post URL copied to clipboard");
-            }
+            await navigator.clipboard.writeText(url);
+            showToast("success", "Link copied!", "Post URL copied to clipboard");
         } catch {
-            try {
-                await navigator.clipboard.writeText(url);
-                showToast("success", "Link copied!");
-            } catch {
-                showToast("error", "Failed to copy link");
-            }
+            showToast("error", "Failed to copy link");
         }
     };
 
@@ -332,7 +330,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                                 <div className="absolute right-0 top-full mt-2 w-52 bg-[#111] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl z-50 animate-fade-in py-1">
-                                    <button onClick={handleShare} className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/[0.06] transition-colors flex items-center gap-3">
+                                    <button onClick={handleCopyLink} className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/[0.06] transition-colors flex items-center gap-3">
                                         <LinkIcon className="w-4.5 h-4.5 text-text-secondary" />
                                         Copy Link
                                     </button>
@@ -563,6 +561,11 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 postId={post.id}
                 isOpen={showLikesModal}
                 onClose={() => setShowLikesModal(false)}
+            />
+            <ShareModal
+                postId={post.id}
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
             />
         </div>
     );

@@ -16,6 +16,7 @@ import { HeartIcon as HeartIconSolid, BookmarkIcon as BookmarkIconSolid } from "
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
 import LikesModal from "@/components/LikesModal";
+import ShareModal from "@/components/ShareModal";
 
 interface Post {
     id: number;
@@ -55,6 +56,7 @@ export default function FeedPost({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
     const [showLikesModal, setShowLikesModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     
     // Action states
     const [showMenu, setShowMenu] = useState(false);
@@ -197,22 +199,18 @@ export default function FeedPost({
         setTimeout(() => setShowDoubleTapHeart(false), 800);
     };
 
-    const handleShare = async () => {
-        const url = `${window.location.origin}/post/${post.id}`;
+    const handleShare = () => {
+        setShowShareModal(true);
+    };
+
+    const handleCopyLink = async () => {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const url = `${baseUrl}/post/${post.id}`;
         try {
-            if (navigator.share) {
-                await navigator.share({ title: `Post by ${post.username}`, url });
-            } else {
-                await navigator.clipboard.writeText(url);
-                showToast("success", "Link copied!", "Post URL copied to clipboard");
-            }
+            await navigator.clipboard.writeText(url);
+            showToast("success", "Link copied!", "Post URL copied to clipboard");
         } catch {
-            try {
-                await navigator.clipboard.writeText(url);
-                showToast("success", "Link copied!");
-            } catch {
-                // Silent fail
-            }
+            // Silent fail
         }
     };
 
@@ -324,7 +322,7 @@ export default function FeedPost({
                                 </>
                             ) : (
                                 <>
-                                    <button onClick={() => { setShowMenu(false); handleShare(); }} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors">
+                                    <button onClick={() => { setShowMenu(false); handleCopyLink(); }} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors">
                                         Copy Link
                                     </button>
                                     <button onClick={() => { setShowMenu(false); showToast("error", "Report submitted"); }} className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors border-t border-white/5">
@@ -464,6 +462,11 @@ export default function FeedPost({
                 postId={post.id}
                 isOpen={showLikesModal}
                 onClose={() => setShowLikesModal(false)}
+            />
+            <ShareModal
+                postId={post.id}
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
             />
         </div>
     );

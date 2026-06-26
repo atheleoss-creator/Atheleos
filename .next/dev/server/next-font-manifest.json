@@ -4,11 +4,19 @@
       "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
       "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
     ],
-    "[project]/app/(auth)/signup/page": [
+    "[project]/app/(main)/messages/page": [
       "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
       "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
     ],
     "[project]/app/(main)/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/post/[id]/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
+    ],
+    "[project]/app/(main)/profile/[username]/page": [
       "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
       "static/media/4beccb0a5028d7af-s.p.e096a8c8.woff2"
     ]
