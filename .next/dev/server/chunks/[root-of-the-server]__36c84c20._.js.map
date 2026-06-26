@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///D:/Atheleos/app/api/auth/logout/route.ts"],"sourcesContent":["import { NextResponse } from 'next/server';\r\n\r\nexport async function POST() {\r\n  const response = NextResponse.json({ success: true }, { status: 200 });\r\n  \r\n  response.cookies.delete('atheleos_token');\r\n  \r\n  return response;\r\n}\r\n"],"names":[],"mappings":";;;;AAAA;;AAEO,eAAe;IACpB,MAAM,WAAW,gJAAY,CAAC,IAAI,CAAC;QAAE,SAAS;IAAK,GAAG;QAAE,QAAQ;IAAI;IAEpE,SAAS,OAAO,CAAC,MAAM,CAAC;IAExB,OAAO;AACT"}}]
+}

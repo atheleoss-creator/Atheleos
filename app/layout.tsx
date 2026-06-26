@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   title: "Atheleos - Premium Sports Social Network",
   description: "Join the elite sports community.",
   icons: {
-    icon: "/atheleos.svg",
-    apple: "/atheleos.jpeg",
+    icon: "/atheleos.png",
+    apple: "/atheleos.png",
   }
 };
 

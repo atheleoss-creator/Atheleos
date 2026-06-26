@@ -262,7 +262,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     }
 
     const avatarUrl = profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}&background=random`;
-    const coverUrl = profile.cover_url || `https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=1000&h=300&fit=crop`;
 
     const tabs = [
         { id: 'posts', label: 'Posts', icon: Squares2X2Icon },
@@ -304,14 +303,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 </div>
             </div>
 
-            {/* Cover Image */}
-            <div className="w-full h-[180px] md:h-[300px] relative overflow-hidden hidden md:block group">
-                <Image src={coverUrl} alt="Cover" fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
-                <div className="absolute inset-0 bg-gradient-to-t from-bg-body via-bg-body/30 to-transparent" />
-            </div>
-
             {/* Profile Info */}
-            <div className="px-4 py-2 md:px-8 mt-14 md:mt-0 md:-mt-[50px] relative z-20">
+            <div className="px-4 py-2 md:px-8 mt-14 md:mt-6 relative z-20">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-4">
 
                     {/* Avatar & Name */}
@@ -357,8 +350,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                             <span className="text-sm md:text-base text-accent-primary font-bold tracking-wide">@{profile.username}</span>
 
                             {profile.recruiting_status && profile.recruiting_status !== 'Not Looking' && (
-                                <div className={`inline-flex w-fit px-3 py-1 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest backdrop-blur-sm ${
-                                    profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                <div className={`inline-flex w-fit px-3 py-1 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest backdrop-blur-sm ${profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                                     'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'}`}>
                                     {profile.recruiting_status}
                                 </div>
@@ -373,24 +365,23 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 <Link href="/edit-profile" className="py-2.5 px-6 bg-white/[0.06] border border-white/[0.08] text-white font-bold text-sm tracking-wider uppercase rounded-xl hover:bg-white/[0.1] transition-all shadow-sm">
                                     Edit Profile
                                 </Link>
-                                <Link href="/settings" className="hidden md:flex py-2.5 px-6 bg-white/[0.06] border border-white/[0.08] text-white font-bold text-sm tracking-wider uppercase rounded-xl hover:bg-white/[0.1] transition-all shadow-sm items-center justify-center">
+                                {/* <Link href="/settings" className="hidden md:flex py-2.5 px-6 bg-white/[0.06] border border-white/[0.08] text-white font-bold text-sm tracking-wider uppercase rounded-xl hover:bg-white/[0.1] transition-all shadow-sm items-center justify-center">
                                     Settings
-                                </Link>
+                                </Link> */}
                             </>
                         ) : (
                             <div className="flex gap-2">
                                 <button
                                     onClick={toggleFollow}
                                     disabled={followLoading}
-                                    className={`py-2.5 px-7 font-bold text-sm tracking-wider uppercase rounded-xl transition-all ${
-                                        isFollowing
-                                            ? 'bg-white/[0.06] border border-white/[0.08] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-                                            : 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white shadow-[0_0_15px_rgba(0,212,255,0.2)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)]'
-                                    }`}
+                                    className={`py-2.5 px-7 font-bold text-sm tracking-wider uppercase rounded-xl transition-all ${isFollowing
+                                        ? 'bg-white/[0.06] border border-white/[0.08] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                        : 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white shadow-[0_0_15px_rgba(0,212,255,0.2)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)]'
+                                        }`}
                                 >
                                     {isFollowing ? 'Following' : 'Follow'}
                                 </button>
-                                
+
                                 {isFollowing && (
                                     <button
                                         onClick={() => setShowMessageModal(true)}
@@ -462,7 +453,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                                 loop
                                                 playsInline
                                                 preload="metadata"
-                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => { })}
                                                 onMouseLeave={(e) => {
                                                     e.currentTarget.pause();
                                                     e.currentTarget.currentTime = 0;
@@ -575,11 +566,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         {profile.recruiting_status && profile.recruiting_status !== 'Not Looking' && (
                             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 backdrop-blur-sm">
                                 <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest mb-4">Recruiting Status</h3>
-                                <div className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold ${
-                                    profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                <div className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold ${profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                                     profile.recruiting_status === 'Free Agent' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                                    'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
-                                }`}>
+                                        'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
+                                    }`}>
                                     {profile.recruiting_status}
                                 </div>
                             </div>
@@ -651,14 +641,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 {profile.posts.filter((p: any) => p.media_url).map((post: any) => (
                                     <Link key={post.id} href={`/post/${post.id}`} className="aspect-square relative group bg-bg-surface overflow-hidden rounded-lg md:rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition-colors block">
                                         {post.media_type === 'video' ? (
-                                            <video 
+                                            <video
                                                 src={`${post.media_url}#t=0.001`}
-                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                                                muted 
-                                                loop 
-                                                playsInline 
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                muted
+                                                loop
+                                                playsInline
                                                 preload="metadata"
-                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => { })}
                                                 onMouseLeave={(e) => {
                                                     e.currentTarget.pause();
                                                     e.currentTarget.currentTime = 0;
@@ -768,11 +758,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                                     <button
                                                         onClick={() => handleModalFollow(u.id)}
                                                         disabled={followLoadingId === u.id}
-                                                        className={`shrink-0 px-4 py-1.5 rounded-lg text-[12px] font-bold tracking-wide uppercase transition-all active:scale-95 ${
-                                                            following
-                                                                ? 'bg-white/[0.06] border border-white/[0.1] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-                                                                : 'bg-accent-primary text-white shadow-[0_0_10px_rgba(0,212,255,0.15)]'
-                                                        }`}
+                                                        className={`shrink-0 px-4 py-1.5 rounded-lg text-[12px] font-bold tracking-wide uppercase transition-all active:scale-95 ${following
+                                                            ? 'bg-white/[0.06] border border-white/[0.1] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                                                            : 'bg-accent-primary text-white shadow-[0_0_10px_rgba(0,212,255,0.15)]'
+                                                            }`}
                                                     >
                                                         {followLoadingId === u.id ? (
                                                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />

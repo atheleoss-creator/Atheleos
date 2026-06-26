@@ -5,7 +5,7 @@ import { sendOTP } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   try {
-    const { username, email, password, fullName, role, city, state, bio, sport, position, height, weight, topSpeed, verticalLeap, recruitingStatus, publicKey } = await req.json();
+    const { username, email, password, fullName, dob, role, city, state, bio, sport, position, height, weight, topSpeed, verticalLeap, recruitingStatus, publicKey } = await req.json();
 
     const missingFields = [];
     if (!username?.trim()) missingFields.push('username');
@@ -38,15 +38,15 @@ export async function POST(req: Request) {
     // 3. Create User in Database as Unverified
     const insertSql = `
       INSERT INTO users (
-        username, email, password_hash, full_name, role, city, state, bio, 
+        username, email, password_hash, full_name, dob, role, city, state, bio, 
         sport, position, height, weight, top_speed, vertical_leap, recruiting_status, 
         is_verified, otp_code, otp_expires_at, public_key
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?)
     `;
     
     await query(insertSql, [
-        username, email, passwordHash, fullName, role, city || null, state || null, bio || null, 
+        username, email, passwordHash, fullName, dob || null, role, city || null, state || null, bio || null, 
         sport || null, position || null, height || null, weight || null, topSpeed || null, verticalLeap || null, recruitingStatus || 'Not Looking',
         otp, expiresAt, publicKey
     ]);

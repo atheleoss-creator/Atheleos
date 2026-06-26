@@ -6,9 +6,9 @@
   --font-display: var(--font-grand-hotel), cursive;
 
   /* Primary Accent Colors */
-  --color-accent-primary: #00d4ff;
-  --color-accent-secondary: #7c3aed;
-  --color-accent-tertiary: #ff6b6b;
+  --color-accent-primary: #0095f6;
+  --color-accent-secondary: #0074cc;
+  --color-accent-tertiary: #38bdf8;
   --color-accent-success: #10b981;
   --color-accent-warning: #f59e0b;
   --color-accent-error: #ef4444;
@@ -38,17 +38,17 @@
 }
 
 :root {
-  --accent-primary-rgb: 0, 212, 255;
-  --accent-secondary-rgb: 124, 58, 237;
+  --accent-primary-rgb: 0, 149, 246;
+  --accent-secondary-rgb: 0, 116, 204;
 
-  --accent-gradient: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #00b8e0 0%, #6d28d9 100%);
+  --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0074cc 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #7dd3fc 0%, #0095f6 100%);
   --glass-gradient: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.05) 0%,
     rgba(255, 255, 255, 0.01) 100%
   );
-  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.15);
+  --shadow-glow: 0 0 20px rgba(0, 149, 246, 0.25);
   --header-height: 64px;
   --mobile-nav-height: 56px;
 }
@@ -76,8 +76,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
-  50% { box-shadow: 0 0 20px 4px rgba(0, 212, 255, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 193, 88, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(229, 193, 88, 0.15); }
 }
 
 @keyframes float {
@@ -108,17 +108,17 @@ body::before {
   background:
     radial-gradient(
       ellipse at 10% 40%,
-      rgba(0, 212, 255, 0.04),
+      rgba(229, 193, 88, 0.05),
       transparent 50%
     ),
     radial-gradient(
       ellipse at 90% 20%,
-      rgba(124, 58, 237, 0.04),
+      rgba(184, 134, 11, 0.05),
       transparent 50%
     ),
     radial-gradient(
       ellipse at 50% 90%,
-      rgba(0, 212, 255, 0.02),
+      rgba(229, 193, 88, 0.03),
       transparent 40%
     );
   pointer-events: none;
@@ -192,7 +192,7 @@ img {
 
 /* Selection color */
 ::selection {
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(0, 149, 246, 0.3);
   color: #fff;
 }
 

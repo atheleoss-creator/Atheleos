@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 interface SuggestedUser {
     id: number;
@@ -55,7 +56,7 @@ export default function Sidebar() {
         <div className="hidden lg:flex flex-col gap-5 sticky top-[90px] h-fit animate-fade-in">
 
             {/* User Card */}
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4 hover:border-accent-primary/30 transition-all duration-300 backdrop-blur-sm group">
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-3 hover:border-accent-primary/30 transition-all duration-300 backdrop-blur-sm group">
                 <Link href={user?.username ? `/profile/${user.username}` : '#'} className="relative w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-accent-primary/50 transition-all shrink-0">
                     <Image src={user?.avatarUrl || "/default_avatar.svg"} alt={user?.username || "Profile"} fill className="object-cover" unoptimized />
                 </Link>
@@ -65,6 +66,9 @@ export default function Sidebar() {
                     </Link>
                     <div className="text-xs text-text-secondary truncate">{user.fullName}</div>
                 </div>
+                <Link href="/settings" className="p-2 text-text-tertiary hover:text-[#0095F6] hover:bg-[#0095F6]/10 rounded-xl transition-all shrink-0" title="Settings">
+                    <Cog6ToothIcon className="w-5 h-5" />
+                </Link>
             </div>
 
             {/* Suggested Accounts */}
@@ -109,7 +113,7 @@ export default function Sidebar() {
                                 {isFollowed ? (
                                     <span className="text-[11px] text-text-tertiary font-medium px-3 py-1 rounded-lg bg-white/[0.04]">Following</span>
                                 ) : (
-                                    <button onClick={() => handleFollow(s.id)} className="text-[11px] text-accent-primary font-bold px-3 py-1 rounded-lg hover:bg-accent-primary/10 transition-colors">
+                                    <button onClick={() => handleFollow(s.id)} className="text-[11px] text-[#0095F6] font-bold px-3 py-1 rounded-lg hover:bg-[#0095F6]/10 transition-colors cursor-pointer">
                                         Follow
                                     </button>
                                 )}

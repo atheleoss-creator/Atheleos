@@ -238,11 +238,14 @@ export default function Stories() {
                                 <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/20">
                                     <Image src={activeGroup.avatarUrl} alt={activeGroup.username} width={36} height={36} className="w-full h-full object-cover" unoptimized />
                                 </div>
-                                <div>
+                                <div className="flex items-center">
                                     <span className="text-white text-[14px] font-bold">{activeGroup.username}</span>
                                     <span className="text-white/50 text-[12px] ml-2">
                                         {activeStory.createdAt && formatTimeAgo(activeStory.createdAt)}
                                     </span>
+                                    <button className="ml-3 bg-[#0095F6] hover:bg-[#1877F2] active:bg-[#0074CC] text-white text-[11px] font-bold px-3.5 py-1 rounded-full transition-colors shadow-[0_0_12px_rgba(0,149,246,0.4)] cursor-pointer">
+                                        Follow
+                                    </button>
                                 </div>
                             </div>
                             <button onClick={closeViewer} className="p-2 text-white/70 hover:text-white transition-colors">

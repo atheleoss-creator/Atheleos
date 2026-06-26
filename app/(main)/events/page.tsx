@@ -26,13 +26,80 @@ interface Event {
 export default function EventsPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const isAdmin = user?.role === 'admin';
 
     const [activeTab, setActiveTab] = useState<"upcoming" | "completed">("upcoming");
     const [activeCategory, setActiveCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+    const [appliedEventIds, setAppliedEventIds] = useState<Set<number>>(new Set());
+    const [submitting, setSubmitting] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        title: "",
+        sport: "Football",
+        event_date: "",
+        location: "",
+        max_teams: 16,
+        image_url: "",
+        description: ""
+    });
+
+    const handleCreateEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!createForm.title.trim()) return;
+        setSubmitting(true);
+        try {
+            const res = await fetch('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(createForm)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const newEvent: Event = {
+                    id: data.eventId || Date.now(),
+                    title: createForm.title,
+                    sport: createForm.sport,
+                    description: createForm.description,
+                    event_date: createForm.event_date || null,
+                    location: createForm.location || null,
+                    image_url: createForm.image_url || null,
+                    status: 'upcoming',
+                    max_teams: Number(createForm.max_teams) || 16,
+                    teams_registered: 1,
+                    winner: null,
+                    created_at: new Date().toISOString()
+                };
+                setEvents([newEvent, ...events]);
+                setAppliedEventIds(new Set([...appliedEventIds, newEvent.id]));
+                setShowCreateModal(false);
+                setCreateForm({ title: "", sport: "Football", event_date: "", location: "", max_teams: 16, image_url: "", description: "" });
+            }
+        } catch (err) {
+            console.error("Create event error", err);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleApply = (eventId: number, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        if (appliedEventIds.has(eventId)) return;
+        setAppliedEventIds(new Set([...appliedEventIds, eventId]));
+        setEvents(events.map(ev => ev.id === eventId ? { ...ev, teams_registered: ev.teams_registered + 1 } : ev));
+        if (selectedEvent && selectedEvent.id === eventId) {
+            setSelectedEvent({ ...selectedEvent, teams_registered: selectedEvent.teams_registered + 1 });
+        }
+        // Save registration increment to MySQL database
+        fetch('/api/events', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId })
+        }).catch(err => console.error("Failed to save RSVP to db:", err));
+    };
 
     // Fetch events from API
     useEffect(() => {
@@ -82,9 +149,9 @@ export default function EventsPage() {
                         </button>
                         <h1 className="text-[20px] font-bold text-text-primary">Tournaments</h1>
                     </div>
-                    {isAdmin && (
-                        <button className="hidden md:flex items-center gap-2 bg-accent-primary text-bg-body font-bold text-[13px] px-4 py-1.5 rounded-full hover:bg-white transition-colors">
-                            <span>+</span> Create Event
+                    {true && (
+                        <button onClick={() => setShowCreateModal(true)} className="hidden md:flex items-center gap-2 bg-accent-primary text-bg-body font-bold text-[13px] px-4 py-1.5 rounded-full hover:bg-white transition-colors cursor-pointer shadow-[0_0_15px_rgba(229,193,88,0.3)]">
+                            <span>+</span> Add Event
                         </button>
                     )}
                 </div>
@@ -168,7 +235,7 @@ export default function EventsPage() {
                 {!loading && events.map((event) => {
                     const coverImage = event.image_url || "https://images.unsplash.com/photo-1518605368461-1bd49cece51f?w=600&h=300&fit=crop";
                     return (
-                        <div key={event.id} className="bg-bg-surface rounded-2xl overflow-hidden border border-border-color hover:border-text-secondary/50 transition-colors cursor-pointer group animate-fade-in">
+                        <div key={event.id} onClick={() => setSelectedEvent(event)} className="bg-bg-surface rounded-2xl overflow-hidden border border-border-color hover:border-text-secondary/50 transition-colors cursor-pointer group animate-fade-in">
                             <div className="h-40 w-full relative">
                                 <Image src={coverImage} alt={event.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
@@ -215,9 +282,18 @@ export default function EventsPage() {
                                                 <span className="text-[11px] text-text-secondary uppercase font-bold tracking-wider">Registration</span>
                                                 <span className="text-[13px] font-semibold text-text-primary">{event.teams_registered} / {event.max_teams} Teams</span>
                                             </div>
-                                            <button className="bg-text-primary text-bg-body text-[13px] font-bold px-5 py-2 rounded-lg hover:bg-gray-200 transition-colors">
-                                                View Details
-                                            </button>
+                                            <div className="flex gap-2 items-center">
+                                                <button onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }} className="bg-bg-surface border border-border-color text-text-primary text-[12px] font-bold px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                                                    Details
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleApply(event.id, e)}
+                                                    disabled={appliedEventIds.has(event.id)}
+                                                    className={`text-[12px] font-bold px-4 py-1.5 rounded-lg transition-all ${appliedEventIds.has(event.id) ? "bg-green-500/20 text-green-400 border border-green-500/30 cursor-default" : "bg-accent-primary text-bg-body hover:bg-white cursor-pointer shadow-[0_0_10px_rgba(229,193,88,0.3)]"}`}
+                                                >
+                                                    {appliedEventIds.has(event.id) ? "Applied ✓" : "Apply Now"}
+                                                </button>
+                                            </div>
                                         </>
                                     ) : (
                                         <>
@@ -239,12 +315,101 @@ export default function EventsPage() {
                 })}
             </div>
 
-            {isAdmin && (
-                <button className="md:hidden fixed bottom-24 right-4 bg-accent-primary text-bg-body w-14 h-14 rounded-full shadow-lg shadow-accent-primary/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-30">
+            {true && (
+                <button onClick={() => setShowCreateModal(true)} className="md:hidden fixed bottom-24 right-4 bg-accent-primary text-bg-body w-14 h-14 rounded-full shadow-[0_0_20px_rgba(229,193,88,0.4)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                 </button>
+            )}
+
+            {/* Create Event Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-[#121212] border border-border-color rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between pb-4 border-b border-border-color mb-4">
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">🏆 Create New Event</h2>
+                            <button onClick={() => setShowCreateModal(false)} className="text-text-secondary hover:text-white text-xl">✕</button>
+                        </div>
+                        <form onSubmit={handleCreateEvent} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Event Title</label>
+                                <input type="text" value={createForm.title} onChange={e => setCreateForm({...createForm, title: e.target.value})} placeholder="e.g. NextGen Athlete Showcase 2026" className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary" required />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Sport</label>
+                                    <select value={createForm.sport} onChange={e => setCreateForm({...createForm, sport: e.target.value})} className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary cursor-pointer">
+                                        {CATEGORIES.filter(c => c !== "All").map(c => <option key={c} value={c} className="bg-[#121212]">{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Max Teams / Spots</label>
+                                    <input type="number" value={createForm.max_teams} onChange={e => setCreateForm({...createForm, max_teams: parseInt(e.target.value) || 16})} className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary" min={2} max={100} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Date</label>
+                                    <input type="date" value={createForm.event_date} onChange={e => setCreateForm({...createForm, event_date: e.target.value})} className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary cursor-pointer [color-scheme:dark]" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Location</label>
+                                    <input type="text" value={createForm.location} onChange={e => setCreateForm({...createForm, location: e.target.value})} placeholder="e.g. Los Angeles, CA" className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Cover Image URL (Optional)</label>
+                                <input type="url" value={createForm.image_url} onChange={e => setCreateForm({...createForm, image_url: e.target.value})} placeholder="https://images.unsplash.com/photo-..." className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary placeholder-neutral-600" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-text-secondary uppercase mb-1">Description</label>
+                                <textarea value={createForm.description} onChange={e => setCreateForm({...createForm, description: e.target.value})} placeholder="Scouting combine rules, entry criteria, prize pool..." rows={3} className="w-full bg-[#1e1e1e] border border-border-color rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-accent-primary resize-none" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-transparent border border-border-color text-text-secondary hover:text-white py-2.5 rounded-xl text-sm font-bold transition-colors">Cancel</button>
+                                <button type="submit" disabled={submitting} className="flex-1 bg-accent-primary text-bg-body hover:bg-white py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 shadow-[0_0_15px_rgba(229,193,88,0.3)]">
+                                    {submitting ? "Publishing..." : "Publish Event"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Event Details Modal */}
+            {selectedEvent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedEvent(null)}>
+                    <div className="bg-[#121212] border border-border-color rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                        <div className="h-44 w-full relative">
+                            <Image src={selectedEvent.image_url || "https://images.unsplash.com/photo-1518605368461-1bd49cece51f?w=600&h=300&fit=crop"} alt={selectedEvent.title} fill className="object-cover" unoptimized />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-black/40 to-transparent" />
+                            <button onClick={() => setSelectedEvent(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black transition-colors">✕</button>
+                            <span className="absolute bottom-3 left-4 px-2.5 py-1 rounded bg-accent-primary text-bg-body font-bold text-xs uppercase tracking-wider">{selectedEvent.sport || "Tournament"}</span>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <h2 className="text-xl font-bold text-white leading-tight">{selectedEvent.title}</h2>
+                            <div className="flex flex-wrap gap-4 text-xs text-text-secondary">
+                                {selectedEvent.event_date && <div className="flex items-center gap-1.5">📅 {selectedEvent.event_date}</div>}
+                                {selectedEvent.location && <div className="flex items-center gap-1.5">📍 {selectedEvent.location}</div>}
+                                <div className="flex items-center gap-1.5">👥 {selectedEvent.teams_registered} / {selectedEvent.max_teams} Registered</div>
+                            </div>
+                            <div className="h-px bg-border-color w-full" />
+                            <div className="text-sm text-neutral-300 leading-relaxed max-h-40 overflow-y-auto pr-1">
+                                {selectedEvent.description || "Join this official Atheleos tournament event. Showcase your skills to top recruiters and coaches."}
+                            </div>
+                            <div className="pt-3 flex gap-3">
+                                <button
+                                    onClick={() => handleApply(selectedEvent.id)}
+                                    disabled={appliedEventIds.has(selectedEvent.id) || selectedEvent.status === 'completed'}
+                                    className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${appliedEventIds.has(selectedEvent.id) ? "bg-green-500/20 text-green-400 border border-green-500/30 cursor-default" : selectedEvent.status === 'completed' ? "bg-neutral-800 text-neutral-500 cursor-not-allowed" : "bg-accent-primary text-bg-body hover:bg-white cursor-pointer shadow-[0_0_15px_rgba(229,193,88,0.3)]"}`}
+                                >
+                                    {appliedEventIds.has(selectedEvent.id) ? "Applied Successfully ✓" : selectedEvent.status === 'completed' ? "Event Completed" : "Apply for Event Now →"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

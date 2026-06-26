@@ -567,7 +567,7 @@ export default function NotificationsPage() {
                     bottom: 8px;
                     width: 3px;
                     border-radius: 0 3px 3px 0;
-                    background: linear-gradient(180deg, #00d4ff, #7c3aed);
+                    background: linear-gradient(180deg, #f4d068, #b8860b);
                 }
                 :global(.notif-badge) {
                     position: absolute;
@@ -583,14 +583,14 @@ export default function NotificationsPage() {
                 }
                 :global(.notif-badge--like) { background: #ef4444; }
                 :global(.notif-badge--comment) { background: #3b82f6; }
-                :global(.notif-badge--follow) { background: linear-gradient(135deg, #00d4ff, #7c3aed); }
+                :global(.notif-badge--follow) { background: linear-gradient(135deg, #f4d068, #b8860b); }
                 .notif-follow-btn {
                     padding: 6px 16px;
                     border-radius: 9999px;
                     font-size: 13px;
                     font-weight: 700;
                     transition: all 0.2s ease;
-                    background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+                    background: linear-gradient(135deg, #f4d068 0%, #b8860b 100%);
                     color: white;
                     min-width: 100px;
                     text-align: center;
@@ -634,8 +634,8 @@ export default function NotificationsPage() {
                     width: 9px;
                     height: 9px;
                     border-radius: 50%;
-                    background: #00d4ff;
-                    box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+                    background: #e5c158;
+                    box-shadow: 0 0 8px rgba(229, 193, 88, 0.5);
                     flex-shrink: 0;
                 }
                 /* Pull-to-refresh */

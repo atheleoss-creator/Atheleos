@@ -15,6 +15,7 @@ import {
     CalendarIcon,
 } from "./Icons";
 import Image from "next/image";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -57,8 +58,9 @@ export default function Navbar() {
             <nav className="hidden md:flex fixed top-0 left-0 right-0 h-[64px] bg-black/70 backdrop-blur-xl border-b border-white/[0.06] z-50 items-center shadow-[0_1px_20px_rgba(0,0,0,0.4)]">
                 <div className="w-full max-w-[1400px] mx-auto px-6 flex justify-between items-center h-full">
                     {/* Brand */}
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <Image src="/atheleos.svg" alt="Atheleos" width={140} height={32} className="h-7 w-auto object-contain select-none" unoptimized />
+                    <Link href="/" className="flex items-center gap-2.5 group">
+                        <Image src="/atheleos.png" alt="Atheleos Icon" width={36} height={36} className="h-9 w-auto object-contain select-none drop-shadow-[0_0_12px_rgba(229,193,88,0.3)]" unoptimized />
+                        <Image src="/AtheleosText.png" alt="Atheleos Text" width={160} height={32} className="h-7 w-auto object-contain select-none drop-shadow-[0_0_12px_rgba(229,193,88,0.2)]" unoptimized />
                     </Link>
 
                     {/* Center Nav Icons */}
@@ -74,6 +76,7 @@ export default function Navbar() {
                     <div className="flex items-center gap-1">
                         <NavItem href="/messages" icon={<MessagesIcon className="w-[22px] h-[22px]" />} active={pathname === "/messages"} label="Messages" />
                         <NavItem href="/notifications" icon={<NotificationsIcon className="w-[22px] h-[22px]" />} active={pathname === "/notifications"} label="Alerts" />
+                        <NavItem href="/settings" icon={<Cog6ToothIcon className="w-[22px] h-[22px]" />} active={pathname === "/settings"} label="Settings" />
 
                         <div className="relative ml-1.5" ref={menuRef}>
                             {user ? (
@@ -127,7 +130,7 @@ export default function Navbar() {
                             ) : (
                                 <Link 
                                     href="/login" 
-                                    className="ml-2 bg-gradient-to-r from-accent-primary to-accent-secondary text-white px-5 py-2 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:scale-105 transition-transform"
+                                    className="ml-2 bg-[#0095F6] hover:bg-[#1877F2] text-white px-5 py-2 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(0,149,246,0.4)] hover:scale-105 transition-all"
                                 >
                                     Log In
                                 </Link>
@@ -144,8 +147,9 @@ export default function Navbar() {
                         <NotificationsIcon className="w-6 h-6" />
                     </Link>
 
-                    <Link href="/" className="flex items-center">
-                        <Image src="/atheleos.svg" alt="Atheleos" width={120} height={28} className="h-6 w-auto object-contain select-none" unoptimized />
+                    <Link href="/" className="flex items-center gap-1.5">
+                        <Image src="/atheleos.png" alt="Atheleos Icon" width={28} height={28} className="h-7 w-auto object-contain select-none drop-shadow-[0_0_10px_rgba(229,193,88,0.2)]" unoptimized />
+                        <Image src="/AtheleosText.png" alt="Atheleos Text" width={130} height={26} className="h-6 w-auto object-contain select-none drop-shadow-[0_0_10px_rgba(229,193,88,0.2)]" unoptimized />
                     </Link>
 
                     <div className="flex gap-1 items-center">
