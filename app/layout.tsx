@@ -24,7 +24,10 @@ export const metadata: Metadata = {
   icons: {
     icon: "/atheleos.png",
     apple: "/atheleos.png",
-  }
+  },
+  verification: {
+    google: "JRXgHPlZovtILo_bWg5Ru_1ssJRONv7OfaJVJeuinXw",
+  },
 };
 
 export default function RootLayout({
