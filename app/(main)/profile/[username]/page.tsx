@@ -304,119 +304,123 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             </div>
 
             {/* Profile Info */}
-            <div className="px-4 py-2 md:px-8 mt-14 md:mt-6 relative z-20">
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-4">
-
-                    {/* Avatar & Name */}
-                    <div className="flex flex-col md:flex-row md:items-end gap-4 mb-4 md:mb-0">
-                        <div className="relative shrink-0 group/avatar w-max">
-                            <div className="w-[90px] h-[90px] md:w-[130px] md:h-[130px] rounded-2xl p-[3px] bg-gradient-to-tr from-accent-primary via-purple-500 to-accent-secondary shadow-[0_0_30px_rgba(0,212,255,0.2)]">
-                                <div className="w-full h-full rounded-[13px] border-4 border-bg-body overflow-hidden relative bg-bg-surface">
-                                    <Image src={avatarUrl} alt={profile.username} fill className="object-cover" unoptimized />
-                                    {avatarUploading && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                            <div className="w-6 h-6 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
-                                        </div>
-                                    )}
-                                </div>
+            <div className="px-4 md:px-8 -mt-2 md:-mt-4 relative z-20 pt-4">
+                {/* Top Section: Avatar on Left, Info & Stats on Right */}
+                <div className="flex items-center gap-6 md:gap-10 mb-5">
+                    {/* Circular Avatar */}
+                    <div className="relative shrink-0 group/avatar">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-[2px] bg-gradient-to-tr from-accent-primary via-purple-500 to-accent-secondary shadow-[0_0_20px_rgba(0,212,255,0.2)]">
+                            <div className="w-full h-full rounded-full border-2 border-bg-body overflow-hidden relative bg-bg-surface">
+                                <Image src={avatarUrl} alt={profile.username} fill className="object-cover" unoptimized />
+                                {avatarUploading && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                        <div className="w-5 h-5 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                )}
                             </div>
-                            {/* Upload button (own profile only) */}
-                            {isOwnProfile && (
-                                <>
-                                    <input
-                                        ref={avatarInputRef}
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp,image/gif"
-                                        onChange={handleAvatarUpload}
-                                        className="hidden"
-                                    />
-                                    <button
-                                        onClick={() => avatarInputRef.current?.click()}
-                                        className="absolute bottom-0 right-0 md:-bottom-1 md:-right-1 w-7 h-7 md:w-9 md:h-9 bg-accent-primary rounded-lg md:rounded-xl flex items-center justify-center text-white shadow-lg shadow-accent-primary/30 border-2 border-bg-body hover:scale-110 active:scale-95 transition-transform"
-                                    >
-                                        <CameraIcon className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
-                                    </button>
-                                </>
-                            )}
                         </div>
-
-                        <div className="flex flex-col pb-2">
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">
-                                    {profile.full_name || profile.username}
-                                </h1>
-                                {profile.is_verified && profile.verification_level && <Badge level={profile.verification_level} className="w-6 h-6" />}
-                            </div>
-                            <span className="text-sm md:text-base text-accent-primary font-bold tracking-wide">@{profile.username}</span>
-
-                            {profile.recruiting_status && profile.recruiting_status !== 'Not Looking' && (
-                                <div className={`inline-flex w-fit px-3 py-1 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest backdrop-blur-sm ${profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                                    'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'}`}>
-                                    {profile.recruiting_status}
-                                </div>
-                            )}
-                        </div>
+                        {/* Upload button (own profile only) */}
+                        {isOwnProfile && (
+                            <>
+                                <input
+                                    ref={avatarInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                    onChange={handleAvatarUpload}
+                                    className="hidden"
+                                />
+                                <button
+                                    onClick={() => avatarInputRef.current?.click()}
+                                    className="absolute bottom-0 right-0 w-6 h-6 md:w-7 md:h-7 bg-accent-primary rounded-full flex items-center justify-center text-white shadow-md border-2 border-bg-body hover:scale-110 active:scale-95 transition-transform"
+                                    title="Change Avatar"
+                                >
+                                    <CameraIcon className="w-3.5 h-3.5" />
+                                </button>
+                            </>
+                        )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2 pb-2">
+                    {/* Right Side: Name, Username & Stats */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <h1 className="text-base md:text-lg font-bold text-white tracking-tight truncate">
+                                {profile.full_name || profile.username}
+                            </h1>
+                            {profile.is_verified && profile.verification_level && <Badge level={profile.verification_level} className="w-4 h-4 md:w-5 md:h-5 shrink-0" />}
+                        </div>
+                        <span className="text-xs md:text-sm text-accent-primary font-semibold mb-3">@{profile.username}</span>
+
+                        {/* Stats Row */}
+                        <div className="flex items-center gap-6 md:gap-8">
+                            <div className="flex flex-col items-center md:items-start cursor-default">
+                                <span className="font-bold text-base md:text-lg text-white leading-tight">{profile.posts?.length || 0}</span>
+                                <span className="text-[11px] text-text-tertiary font-medium capitalize">posts</span>
+                            </div>
+                            <button onClick={() => openFollowModal('followers')} className="flex flex-col items-center md:items-start hover:opacity-80 transition-opacity cursor-pointer">
+                                <span className="font-bold text-base md:text-lg text-white leading-tight">{profile.followersCount || 0}</span>
+                                <span className="text-[11px] text-text-tertiary font-medium capitalize">followers</span>
+                            </button>
+                            <button onClick={() => openFollowModal('following')} className="flex flex-col items-center md:items-start hover:opacity-80 transition-opacity cursor-pointer">
+                                <span className="font-bold text-base md:text-lg text-white leading-tight">{profile.followingCount || 0}</span>
+                                <span className="text-[11px] text-text-tertiary font-medium capitalize">following</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Down Section: Account Type, Bio & Edit / Action Buttons */}
+                <div className="flex flex-col gap-3 mb-5 max-w-xl">
+                    {/* Account Type Badge */}
+                    {profile.recruiting_status && profile.recruiting_status !== 'Not Looking' && (
+                        <div className="flex">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                profile.recruiting_status === 'Signed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
+                            }`}>
+                                {profile.recruiting_status}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Bio */}
+                    {profile.bio && (
+                        <div className="text-xs md:text-sm text-text-secondary whitespace-pre-wrap leading-relaxed">
+                            {profile.bio}
+                        </div>
+                    )}
+
+                    {/* Action Buttons (Edit Profile / Follow) */}
+                    <div className="flex gap-2 pt-1">
                         {isOwnProfile ? (
-                            <>
-                                <Link href="/edit-profile" className="py-2.5 px-6 bg-white/[0.06] border border-white/[0.08] text-white font-bold text-sm tracking-wider uppercase rounded-xl hover:bg-white/[0.1] transition-all shadow-sm">
-                                    Edit Profile
-                                </Link>
-                                {/* <Link href="/settings" className="hidden md:flex py-2.5 px-6 bg-white/[0.06] border border-white/[0.08] text-white font-bold text-sm tracking-wider uppercase rounded-xl hover:bg-white/[0.1] transition-all shadow-sm items-center justify-center">
-                                    Settings
-                                </Link> */}
-                            </>
+                            <Link href="/edit-profile" className="w-full py-2 px-4 bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.08] text-white font-semibold text-xs md:text-sm rounded-xl transition-all text-center">
+                                Edit profile
+                            </Link>
                         ) : (
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full">
                                 <button
                                     onClick={toggleFollow}
                                     disabled={followLoading}
-                                    className={`py-2.5 px-7 font-bold text-sm tracking-wider uppercase rounded-xl transition-all ${isFollowing
-                                        ? 'bg-white/[0.06] border border-white/[0.08] text-white hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-                                        : 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white shadow-[0_0_15px_rgba(0,212,255,0.2)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)]'
-                                        }`}
+                                    className={`flex-1 py-2 px-4 font-semibold text-xs md:text-sm rounded-xl transition-all ${
+                                        isFollowing
+                                            ? 'bg-white/[0.08] hover:bg-red-500/15 text-white hover:text-red-400 border border-white/[0.08] hover:border-red-500/30'
+                                            : 'bg-accent-primary text-black font-bold shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:opacity-90'
+                                    }`}
                                 >
                                     {isFollowing ? 'Following' : 'Follow'}
                                 </button>
-
                                 {isFollowing && (
                                     <button
                                         onClick={() => setShowMessageModal(true)}
-                                        className="py-2.5 px-4 bg-white/[0.06] border border-white/[0.08] text-white font-bold rounded-xl hover:bg-white/[0.1] hover:border-accent-primary/50 transition-all flex items-center justify-center"
-                                        title="Send Message"
+                                        className="flex-1 py-2 px-4 bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.08] text-white font-semibold text-xs md:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5"
                                     >
-                                        <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5 text-accent-primary" />
+                                        <ChatBubbleOvalLeftEllipsisIcon className="w-4 h-4 text-accent-primary" />
+                                        Message
                                     </button>
                                 )}
                             </div>
                         )}
                     </div>
                 </div>
-
-                {/* Stats — clickable */}
-                <div className="flex flex-wrap gap-3 mb-5 mt-3">
-                    <div className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 backdrop-blur-sm">
-                        <span className="font-black text-lg text-white">{profile.posts?.length || 0}</span>
-                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Posts</span>
-                    </div>
-                    <button onClick={() => openFollowModal('followers')} className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 backdrop-blur-sm hover:bg-white/[0.06] hover:border-accent-primary/20 transition-all cursor-pointer">
-                        <span className="font-black text-lg text-white">{profile.followersCount || 0}</span>
-                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Followers</span>
-                    </button>
-                    <button onClick={() => openFollowModal('following')} className="px-5 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center gap-2 backdrop-blur-sm hover:bg-white/[0.06] hover:border-accent-primary/20 transition-all cursor-pointer">
-                        <span className="font-black text-lg text-white">{profile.followingCount || 0}</span>
-                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Following</span>
-                    </button>
-                </div>
-
-                {profile.bio && (
-                    <div className="text-[14px] text-text-secondary whitespace-pre-wrap leading-relaxed max-w-2xl mb-5">
-                        {profile.bio}
-                    </div>
-                )}
             </div>
 
             {/* Tabs */}
